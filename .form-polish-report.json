@@ -1,0 +1,10 @@
+{
+  "entities": {
+    "Betriebsdaten": {
+      "placeholders_set": 6,
+      "defaults_keys": ["zeitstempel"],
+      "computed_keys": [],
+      "reason": "Reine Messdatenerfassung — keine Aggregationen, Preisberechnungen oder Datums-Differenzen. Kein computed nötig."
+    }
+  }
+}

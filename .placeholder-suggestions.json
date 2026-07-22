@@ -1,0 +1,10 @@
+{
+  "BetriebsdatenDialog.tsx": {
+    "zeitstempel": "z. B. 14:30 heute",
+    "bereich": "Wähle einen Bereich",
+    "messgroesse": "z. B. Temperatur, Druck",
+    "wert": "z. B. 38,5",
+    "einheit": "z. B. °C, bar, m³/h",
+    "bemerkung": "Auffälligkeiten, Besonderheiten, Warnsignale..."
+  }
+}
