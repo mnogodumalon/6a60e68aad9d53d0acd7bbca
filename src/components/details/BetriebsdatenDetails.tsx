@@ -17,7 +17,6 @@ export function BetriebsdatenDetails({
     <>
       <RecordSection title="Details" cols={2}>
         <RecordField label="Zeitstempel" value={record.fields.zeitstempel} format="datetime" />
-        <RecordField label="Bereich" value={record.fields.bereich} format="pill" />
         <RecordField label="Messgröße" value={record.fields.messgroesse} format="text" />
         <RecordField label="Messwert" value={record.fields.wert} format="text" />
         <RecordField label="Einheit" value={record.fields.einheit} format="text" />

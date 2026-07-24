@@ -9,7 +9,6 @@ import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { IconPencil, IconTrash, IconPlus, IconSearch, IconArrowsUpDown, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { BetriebsdatenDialog } from '@/components/dialogs/BetriebsdatenDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -134,12 +133,6 @@ export default function BetriebsdatenPage() {
                   {sortKey === 'zeitstempel' ? (sortDir === 'asc' ? <IconArrowUp size={14} /> : <IconArrowDown size={14} />) : <IconArrowsUpDown size={14} className="opacity-30" />}
                 </span>
               </TableHead>
-              <TableHead className="uppercase text-xs font-semibold text-secondary-foreground tracking-wider px-6 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort('bereich')}>
-                <span className="inline-flex items-center gap-1">
-                  Bereich
-                  {sortKey === 'bereich' ? (sortDir === 'asc' ? <IconArrowUp size={14} /> : <IconArrowDown size={14} />) : <IconArrowsUpDown size={14} className="opacity-30" />}
-                </span>
-              </TableHead>
               <TableHead className="uppercase text-xs font-semibold text-secondary-foreground tracking-wider px-6 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort('messgroesse')}>
                 <span className="inline-flex items-center gap-1">
                   Messgröße
@@ -171,7 +164,6 @@ export default function BetriebsdatenPage() {
             {sortRecords(filtered).map(record => (
               <TableRow key={record.record_id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) return; navigate(`/betriebsdaten/${record.record_id}`); }}>
                 <TableCell className="text-muted-foreground">{formatDate(record.fields.zeitstempel)}</TableCell>
-                <TableCell><span className="inline-flex items-center bg-secondary border border-[#bfdbfe] text-[#2563eb] rounded-[10px] px-2 py-1 text-sm font-medium">{record.fields.bereich?.label ?? '—'}</span></TableCell>
                 <TableCell className="font-medium">{record.fields.messgroesse ?? '—'}</TableCell>
                 <TableCell>{record.fields.wert ?? '—'}</TableCell>
                 <TableCell>{record.fields.einheit ?? '—'}</TableCell>
@@ -190,7 +182,7 @@ export default function BetriebsdatenPage() {
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
                   {search ? 'Keine Ergebnisse gefunden.' : 'Noch keine Betriebsdaten. Jetzt hinzufügen!'}
                 </TableCell>
               </TableRow>

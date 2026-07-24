@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { APP_IDS } from '@/types/app';
 import { AttachmentsSection } from '@/components/AttachmentsSection';
-import { Badge } from '@/components/ui/badge';
 import { IconPencil } from '@tabler/icons-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -44,10 +43,6 @@ export function BetriebsdatenViewDialog({ open, onClose, record, onEdit }: Betri
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Zeitstempel</Label>
             <p className="text-sm">{formatDate(record.fields.zeitstempel)}</p>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Bereich</Label>
-            <Badge variant="secondary">{record.fields.bereich?.label ?? '—'}</Badge>
           </div>
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Messgröße</Label>

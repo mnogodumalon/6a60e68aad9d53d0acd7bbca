@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { Betriebsdaten, LookupValue } from '@/types/app';
-import { APP_IDS, LOOKUP_OPTIONS } from '@/types/app';
+import type { Betriebsdaten } from '@/types/app';
+import { APP_IDS } from '@/types/app';
 import { extractRecordId, createRecordUrl, cleanFieldsForApi, getUserProfile } from '@/services/livingAppsService';
 import {
   Dialog, DialogContent, DialogHeader,
@@ -14,15 +14,10 @@ import { applyFieldOrder, flattenFieldOrder, applyDefaults, evalComputed, number
 import { formEnhancements, computedDeps, computedApplookupRefs } from '@/config/form-enhancements/Betriebsdaten';
 import { AttachmentsSection } from '@/components/AttachmentsSection';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { DatePicker } from '@/components/DatePicker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconAlertCircle, IconCamera, IconChevronDown, IconCircleCheck, IconClipboard, IconFileText, IconLoader2, IconPhotoPlus, IconSparkles, IconUpload, IconX } from '@tabler/icons-react';
 import { fileToDataUri, extractFromInput, extractPhotoMeta, reverseGeocode } from '@/lib/ai';
-import { lookupKey } from '@/lib/formatters';
 
 interface BetriebsdatenDialogProps {
   open: boolean;
@@ -31,38 +26,17 @@ interface BetriebsdatenDialogProps {
   /** SHAPE-TOLERANT: lookup fields accept the bare key (string) or the
    *  LookupValue object; applookup fields the bare record id or the full
    *  record URL — the dialog normalizes both. */
-  defaultValues?: Omit<Betriebsdaten['fields'], 'bereich'> & {
-    bereich?: LookupValue | string;
-  };
+  defaultValues?: Betriebsdaten['fields'];
   /** Record id when editing — enables the attachments section. Omit on create. */
   recordId?: string;
   enablePhotoScan?: boolean;
   enablePhotoLocation?: boolean;
 }
 
-// defaultValues are SHAPE-TOLERANT: the dialog resolves bare lookup keys via
-// its own options and bare record ids via the field's target app — consumers
-// never carry the LookupValue/record-URL shape in their head.
-const NORMALIZE_LOOKUPS: Record<string, readonly { key: string; label: string }[]> = {
-  bereich: LOOKUP_OPTIONS['betriebsdaten']?.['bereich'] ?? [],
-};
-function normalizeDefaults(values: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = { ...values };
-  for (const [k, opts] of Object.entries(NORMALIZE_LOOKUPS)) {
-    const v = out[k];
-    if (typeof v === 'string') out[k] = opts.find(o => o.key === v) ?? { key: v, label: v };
-    else if (Array.isArray(v)) out[k] = v.map(x => (typeof x === 'string' ? opts.find(o => o.key === x) ?? { key: x, label: x } : x));
-  }
-  return out;
-}
-
 export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, recordId, enablePhotoScan = true, enablePhotoLocation = true }: BetriebsdatenDialogProps) {
   const [fields, setFields] = useState<Partial<Betriebsdaten['fields']>>({});
   const [saving, setSaving] = useState(false);
-  const normalizedDefaults = useMemo<Record<string, unknown> | undefined>(
-    () => (defaultValues ? normalizeDefaults(defaultValues as Record<string, unknown>) : undefined),
-    [defaultValues],
-  );
+  const normalizedDefaults = defaultValues as Record<string, unknown> | undefined;
   // Dirty-tracking: in edit-mode the Speichern button is disabled until the
   // user actually changes something. JSON.stringify is good enough for our
   // fields (plain values + LookupValue objects + string arrays).
@@ -75,7 +49,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
     }
   }, [fields, normalizedDefaults]);
   const [showErrors, setShowErrors] = useState(false);
-  const REQUIRED_FIELDS = ['zeitstempel', 'bereich', 'messgroesse', 'wert'] as const;
+  const REQUIRED_FIELDS = ['zeitstempel', 'messgroesse', 'wert'] as const;
   const missingRequired = REQUIRED_FIELDS.filter(k => {
     const v = (fields as Record<string, unknown>)[k];
     return v == null || v === '' || (Array.isArray(v) && v.length === 0);
@@ -228,7 +202,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         }
       }
       const photoContext = contextParts.length ? contextParts.join('\n') : undefined;
-      const schema = `{\n  "zeitstempel": string | null, // YYYY-MM-DDTHH:MM\n  "bereich": LookupValue | null, // Bereich (select one key: "fermenter" | "nachgaerer" | "gasspeicher" | "bhkw" | "substratannahme" | "gaerrestlager" | "aufbereitung" | "sonstiges") mapping: fermenter=Fermenter, nachgaerer=Nachgärer, gasspeicher=Gasspeicher, bhkw=BHKW, substratannahme=Substratannahme, gaerrestlager=Gärrestlager, aufbereitung=Aufbereitung, sonstiges=Sonstiges\n  "messgroesse": string | null, // Messgröße\n  "wert": number | null, // Messwert\n  "einheit": string | null, // Einheit\n  "bemerkung": string | null, // Bemerkung\n}`;
+      const schema = `{\n  "zeitstempel": string | null, // YYYY-MM-DDTHH:MM\n  "messgroesse": string | null, // Messgröße\n  "wert": number | null, // Messwert\n  "einheit": string | null, // Einheit\n  "bemerkung": string | null, // Bemerkung\n}`;
       const raw = await extractFromInput<Record<string, unknown>>(schema, {
         dataUri: uri,
         userText: aiText.trim() || undefined,
@@ -293,7 +267,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         <Label htmlFor="zeitstempel">Zeitstempel <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="zeitstempel"
-          placeholder="z. B. 14:30 heute"
+          placeholder=""
           mode="datetime"
           value={fields.zeitstempel ?? null}
           onChange={v => setFields(f => ({ ...f, zeitstempel: v ?? undefined }))}
@@ -304,37 +278,12 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         )}
       </div>
     ),
-    'bereich': (
-      <div key="bereich" className="space-y-1.5">
-        <Label htmlFor="bereich">Bereich <span className="text-destructive" aria-hidden="true">*</span></Label>
-        <Select
-          value={lookupKey(fields.bereich) ?? ''}
-          onValueChange={v => setFields(f => ({ ...f, bereich: v === 'none' ? undefined : v as any }))}
-        >
-          <SelectTrigger id="bereich" className="max-sm:h-11"><SelectValue placeholder="Wähle einen Bereich" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">—</SelectItem>
-            <SelectItem value="fermenter">Fermenter</SelectItem>
-            <SelectItem value="nachgaerer">Nachgärer</SelectItem>
-            <SelectItem value="gasspeicher">Gasspeicher</SelectItem>
-            <SelectItem value="bhkw">BHKW</SelectItem>
-            <SelectItem value="substratannahme">Substratannahme</SelectItem>
-            <SelectItem value="gaerrestlager">Gärrestlager</SelectItem>
-            <SelectItem value="aufbereitung">Aufbereitung</SelectItem>
-            <SelectItem value="sonstiges">Sonstiges</SelectItem>
-          </SelectContent>
-        </Select>
-        {showErrors && !fields.bereich && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
-        )}
-      </div>
-    ),
     'messgroesse': (
       <div key="messgroesse" className="space-y-1.5">
         <Label htmlFor="messgroesse">Messgröße <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="messgroesse"
-          placeholder="z. B. Temperatur, Druck"
+          placeholder=""
           value={fields.messgroesse ?? ''}
           onChange={e => setFields(f => ({ ...f, messgroesse: e.target.value }))}
           required
@@ -352,7 +301,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
           type="number"
           step="any"
           {...numberInputProps(formEnhancements, 'wert')}
-          placeholder="z. B. 38,5"
+          placeholder=""
           value={fields.wert !== undefined ? fields.wert : (computedValues['wert'] ?? '')}
           onChange={e => setFields(f => ({ ...f, wert: clampNumberValue(formEnhancements, 'wert', e.target.value) }))}
         />
@@ -366,7 +315,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         <Label htmlFor="einheit">Einheit</Label>
         <Input
           id="einheit"
-          placeholder="z. B. °C, bar, m³/h"
+          placeholder=""
           value={fields.einheit ?? ''}
           onChange={e => setFields(f => ({ ...f, einheit: e.target.value }))}
         />
@@ -377,7 +326,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         <Label htmlFor="bemerkung">Bemerkung</Label>
         <Textarea
           id="bemerkung"
-          placeholder="Auffälligkeiten, Besonderheiten, Warnsignale..."
+          placeholder=""
           value={fields.bemerkung ?? ''}
           onChange={e => setFields(f => ({ ...f, bemerkung: e.target.value }))}
           rows={3}
@@ -398,7 +347,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
   //     kein passendes Backend-Feld in orderedFields) erscheinen NICHT als
   //     Input, sondern unten als kompakte 'Berechnungen'-Übersicht oder als
   //     Inline-Hint unter dem letzten beitragenden Input.
-  const FIELD_LABELS: Record<string, string> = {"zeitstempel": "Zeitstempel", "bereich": "Bereich", "messgroesse": "Messgröße", "wert": "Messwert", "einheit": "Einheit", "bemerkung": "Bemerkung"};
+  const FIELD_LABELS: Record<string, string> = {"zeitstempel": "Zeitstempel", "messgroesse": "Messgröße", "wert": "Messwert", "einheit": "Einheit", "bemerkung": "Bemerkung"};
   const CURRENCY_KEYS = new Set<string>([]);
   // Applookup-Referenz-Labels: pro applookup-Feld in dieser Form (ownKey)
   // eine Map { lookupKey: label } für ALLE Felder des Target-Schemas. Wird

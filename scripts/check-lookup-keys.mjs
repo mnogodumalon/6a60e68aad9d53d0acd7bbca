@@ -14,18 +14,7 @@ import { join } from 'node:path';
 
 // field name -> union of valid keys across ALL entities (a literal valid in
 // any entity passes — avoids false positives on shared field names).
-const VALID_KEYS = {
-  "bereich": [
-    "aufbereitung",
-    "bhkw",
-    "fermenter",
-    "gaerrestlager",
-    "gasspeicher",
-    "nachgaerer",
-    "sonstiges",
-    "substratannahme"
-  ]
-};
+const VALID_KEYS = {};
 
 const ROOTS = ['src/pages', 'src/components'];
 // .example.tsx targets a fixed demo schema; src/components/ui are shadcn

@@ -32,7 +32,6 @@ function fmtDate(d?: string) {
 // Field metadata per entity for bulk edit and column filters
 const BETRIEBSDATEN_FIELDS = [
   { key: 'zeitstempel', label: 'Zeitstempel', type: 'date/datetimeminute' },
-  { key: 'bereich', label: 'Bereich', type: 'lookup/select', options: [{ key: 'fermenter', label: 'Fermenter' }, { key: 'nachgaerer', label: 'Nachgärer' }, { key: 'gasspeicher', label: 'Gasspeicher' }, { key: 'bhkw', label: 'BHKW' }, { key: 'substratannahme', label: 'Substratannahme' }, { key: 'gaerrestlager', label: 'Gärrestlager' }, { key: 'aufbereitung', label: 'Aufbereitung' }, { key: 'sonstiges', label: 'Sonstiges' }] },
   { key: 'messgroesse', label: 'Messgröße', type: 'string/text' },
   { key: 'wert', label: 'Messwert', type: 'number' },
   { key: 'einheit', label: 'Einheit', type: 'string/text' },

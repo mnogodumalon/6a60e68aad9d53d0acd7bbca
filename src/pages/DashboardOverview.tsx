@@ -1,9 +1,8 @@
 import { useDashboardData } from '@/hooks/useDashboardData';
 import type { Betriebsdaten } from '@/types/app';
-import { APP_IDS, LOOKUP_OPTIONS } from '@/types/app';
+import { APP_IDS } from '@/types/app';
 import { LivingAppsService } from '@/services/livingAppsService';
 import { formatDateTime } from '@/lib/formatters';
-import { lookupKey } from '@/lib/formatters';
 import { useClock, gruss, undoToast } from '@/lib/polish';
 import { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
@@ -38,12 +37,6 @@ import { AI_PHOTO_SCAN, AI_PHOTO_LOCATION } from '@/config/ai-features';
 const APPGROUP_ID = '6a60e68aad9d53d0acd7bbca';
 const REPAIR_ENDPOINT = '/claude/build/repair';
 
-const BEREICH_OPTIONS = LOOKUP_OPTIONS['betriebsdaten']?.['bereich'] ?? [];
-
-function bereiche(key: string | undefined): string {
-  if (!key) return '—';
-  return BEREICH_OPTIONS.find(o => o.key === key)?.label ?? key;
-}
 
 export default function DashboardOverview() {
   const {
@@ -76,7 +69,7 @@ export default function DashboardOverview() {
 
   const filteredByBereich = useMemo(
     () => bereichFilter
-      ? betriebsdaten.filter(r => lookupKey(r.fields.bereich) === bereichFilter)
+      ? betriebsdaten.filter(r => r.fields.messgroesse === bereichFilter)
       : betriebsdaten,
     [betriebsdaten, bereichFilter],
   );
@@ -103,20 +96,13 @@ export default function DashboardOverview() {
       cardRole: 'subtitle',
     },
     {
-      key: 'bereich',
-      label: 'Bereich',
-      accessor: r => r.data.fields.bereich,
+      key: 'messgroesse',
+      label: 'Messgröße',
+      accessor: r => r.data.fields.messgroesse,
       format: 'pill',
       filterable: true,
       priority: 100,
       cardRole: 'title',
-    },
-    {
-      key: 'messgroesse',
-      label: 'Messgröße',
-      accessor: r => r.data.fields.messgroesse,
-      format: 'text',
-      filterable: true,
     },
     {
       key: 'wert',
@@ -175,7 +161,7 @@ export default function DashboardOverview() {
 
   // Context line
   const bereichCounts = betriebsdaten.reduce<Record<string, number>>((acc, r) => {
-    const k = lookupKey(r.fields.bereich) ?? 'sonstiges';
+    const k = r.fields.messgroesse ?? 'sonstiges';
     acc[k] = (acc[k] ?? 0) + 1;
     return acc;
   }, {});
@@ -214,14 +200,14 @@ export default function DashboardOverview() {
               icon={<IconFlame size={16} className="shrink-0" />}
               tone={todayEntries.length > 0 ? 'success' : 'default'}
             />
-            {BEREICH_OPTIONS.slice(0, 6).map(opt => (
+            {Object.entries(bereichCounts).slice(0, 6).map(([key, count]) => (
               <StatStripItem
-                key={opt.key}
-                title={opt.label}
-                value={bereichCounts[opt.key] ?? 0}
-                tone={bereichFilter === opt.key ? 'primary' : 'default'}
-                onClick={() => setBereichFilter(f => f === opt.key ? null : opt.key)}
-                active={bereichFilter === opt.key}
+                key={key}
+                title={key}
+                value={count}
+                tone={bereichFilter === key ? 'primary' : 'default'}
+                onClick={() => setBereichFilter(f => f === key ? null : key)}
+                active={bereichFilter === key}
               />
             ))}
           </StatStrip>
@@ -263,7 +249,7 @@ export default function DashboardOverview() {
                 title: r.fields.messgroesse ?? '—',
                 secondLine: (
                   <>
-                    <span className="text-muted-foreground">{bereiche(lookupKey(r.fields.bereich))}</span>
+                    <span className="text-muted-foreground">{r.fields.einheit ?? '—'}</span>
                     {r.fields.wert != null && (
                       <span className="ml-1 font-medium">
                         {r.fields.wert}{r.fields.einheit ? ` ${r.fields.einheit}` : ''}
@@ -290,8 +276,8 @@ export default function DashboardOverview() {
               rows={chartRows}
               dimension={{
                 kind: 'category',
-                accessor: r => r.data.fields.bereich,
-                label: 'Bereich',
+                accessor: r => r.data.fields.messgroesse,
+                label: 'Messgröße',
               }}
             />
           </>
@@ -309,7 +295,7 @@ export default function DashboardOverview() {
           <>
             <RecordHeader
               title={current.fields.messgroesse ?? '—'}
-              subtitle={`${bereiche(lookupKey(current.fields.bereich))} · ${formatDateTime(current.fields.zeitstempel)}`}
+              subtitle={`${current.fields.einheit ?? '—'} · ${formatDateTime(current.fields.zeitstempel)}`}
             />
             <BetriebsdatenDetails record={current} />
           </>

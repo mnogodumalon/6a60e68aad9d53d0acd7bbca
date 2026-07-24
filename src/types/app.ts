@@ -27,7 +27,6 @@ export interface Betriebsdaten {
   updatedat: string | null;
   fields: {
     zeitstempel?: string; // Format: YYYY-MM-DD oder ISO String
-    bereich?: LookupValue;
     messgroesse?: string;
     wert?: number;
     einheit?: string;
@@ -40,16 +39,11 @@ export const APP_IDS = {
 } as const;
 
 
-export const LOOKUP_OPTIONS: Record<string, Record<string, {key: string, label: string}[]>> = {
-  'betriebsdaten': {
-    bereich: [{ key: "fermenter", label: "Fermenter" }, { key: "nachgaerer", label: "Nachgärer" }, { key: "gasspeicher", label: "Gasspeicher" }, { key: "bhkw", label: "BHKW" }, { key: "substratannahme", label: "Substratannahme" }, { key: "gaerrestlager", label: "Gärrestlager" }, { key: "aufbereitung", label: "Aufbereitung" }, { key: "sonstiges", label: "Sonstiges" }],
-  },
-};
+export const LOOKUP_OPTIONS: Record<string, Record<string, {key: string, label: string}[]>> = {};
 
 export const FIELD_TYPES: Record<string, Record<string, string>> = {
   'betriebsdaten': {
     'zeitstempel': 'date/datetimeminute',
-    'bereich': 'lookup/select',
     'messgroesse': 'string/text',
     'wert': 'number',
     'einheit': 'string/text',
