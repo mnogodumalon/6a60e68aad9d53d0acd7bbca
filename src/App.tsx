@@ -7,15 +7,13 @@ import { ErrorBusProvider } from '@/components/ErrorBus';
 import { Layout } from '@/components/Layout';
 import DashboardOverview from '@/pages/DashboardOverview';
 import AdminPage from '@/pages/AdminPage';
-import PublicPagesAdmin from '@/pages/PublicPagesAdmin';
 import BetriebsdatenPage from '@/pages/BetriebsdatenPage';
 import BetriebsdatenDetailPage from '@/pages/BetriebsdatenDetailPage';
+import PublicFormBetriebsdaten from '@/pages/public/PublicForm_Betriebsdaten';
+// <public:imports>
+// </public:imports>
 // <custom:imports>
 // </custom:imports>
-
-// Lazy: public pages live outside <Layout> and only load on /#/public/:slug —
-// dashboard users never pay for them, anonymous visitors skip the dashboard.
-const PublicPage = lazy(() => import('@/pages/public/PublicPage'));
 
 export default function App() {
   return (
@@ -24,13 +22,14 @@ export default function App() {
         <HashRouter>
           <ActionsProvider>
             <Routes>
-              <Route path="public/:slug" element={<Suspense fallback={null}><PublicPage /></Suspense>} />
+              <Route path="public/6a60e68007044c0b94964877" element={<PublicFormBetriebsdaten />} />
+              {/* <public:routes> */}
+              {/* </public:routes> */}
               <Route element={<Layout />}>
                 <Route index element={<DashboardOverview />} />
                 <Route path="betriebsdaten" element={<BetriebsdatenPage />} />
                 <Route path="betriebsdaten/:id" element={<BetriebsdatenDetailPage />} />
                 <Route path="admin" element={<AdminPage />} />
-                <Route path="verwaltung/oeffentliche-seiten" element={<PublicPagesAdmin />} />
                 {/* <custom:routes> */}
                 {/* </custom:routes> */}
               </Route>

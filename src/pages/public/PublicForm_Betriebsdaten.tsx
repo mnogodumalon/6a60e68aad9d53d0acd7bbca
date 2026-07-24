@@ -3,12 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { DatePicker } from '@/components/DatePicker';
-import { lookupKey } from '@/lib/formatters';
 
 // Empty PROXY_BASE → relative URLs (dashboard and form-proxy share the domain).
 const PROXY_BASE = '';
@@ -138,26 +133,6 @@ export default function PublicFormBetriebsdaten() {
               onChange={v => setFields(f => ({ ...f, zeitstempel: v ?? undefined }))}
               required
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bereich">Bereich *</Label>
-            <Select
-              value={lookupKey(fields.bereich) ?? ''}
-              onValueChange={v => setFields(f => ({ ...f, bereich: v === 'none' ? undefined : v as any }))}
-            >
-              <SelectTrigger id="bereich" className="max-sm:h-11"><SelectValue placeholder="" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">—</SelectItem>
-                <SelectItem value="fermenter">Fermenter</SelectItem>
-                <SelectItem value="nachgaerer">Nachgärer</SelectItem>
-                <SelectItem value="gasspeicher">Gasspeicher</SelectItem>
-                <SelectItem value="bhkw">BHKW</SelectItem>
-                <SelectItem value="substratannahme">Substratannahme</SelectItem>
-                <SelectItem value="gaerrestlager">Gärrestlager</SelectItem>
-                <SelectItem value="aufbereitung">Aufbereitung</SelectItem>
-                <SelectItem value="sonstiges">Sonstiges</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="messgroesse">Messgröße *</Label>
