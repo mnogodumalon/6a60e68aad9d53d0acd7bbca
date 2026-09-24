@@ -9,7 +9,7 @@
       "controls": {
         "zeitstempel": {
           "identifier": "zeitstempel",
-          "label": "Zeitstempel",
+          "label": "Zeitstempel (Sekundengenau)",
           "type": "date",
           "subtype": "datetimeminute",
           "fulltype": "date/datetimeminute",

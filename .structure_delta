@@ -1,6 +1,17 @@
 {
   "version": 1,
-  "changes": [],
-  "counts": {},
+  "changes": [
+    {
+      "kind": "label_changed",
+      "scope": "field",
+      "entity": "betriebsdaten",
+      "field": "zeitstempel",
+      "old_label": "Zeitstempel",
+      "new_label": "Zeitstempel (Sekundengenau)"
+    }
+  ],
+  "counts": {
+    "label_changed": 1
+  },
   "harmless_only": true
 }

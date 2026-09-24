@@ -105,7 +105,7 @@ export const FIELD_RULES: Record<EntityKey, Record<string, FieldRule>> = {
       "fulltype": "date/datetimeminute",
       "kind": "datetime",
       "required": true,
-      "label": "Zeitstempel",
+      "label": "Zeitstempel (Sekundengenau)",
       "writable": true
     },
     "messgroesse": {
