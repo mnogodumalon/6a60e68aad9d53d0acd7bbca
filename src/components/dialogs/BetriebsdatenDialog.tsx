@@ -369,7 +369,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
   //     kein passendes Backend-Feld in orderedFields) erscheinen NICHT als
   //     Input, sondern unten als kompakte 'Berechnungen'-Übersicht oder als
   //     Inline-Hint unter dem letzten beitragenden Input.
-  const FIELD_LABELS: Record<string, string> = {"zeitstempel": "Zeitstempel (Sekundengenau)", "messgroesse": "Messgröße", "wert": "Messwert", "einheit": "Einheit", "bemerkung": "Bemerkung"};
+  const FIELD_LABELS: Record<string, string> = {"zeitstempel": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)", "messgroesse": "Messgröße", "wert": "Messwert", "einheit": "Einheit", "bemerkung": "Bemerkung"};
   const CURRENCY_KEYS = new Set<string>([]);
   // Applookup-Referenz-Labels: pro applookup-Feld in dieser Form (ownKey)
   // eine Map { lookupKey: label } für ALLE Felder des Target-Schemas. Wird

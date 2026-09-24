@@ -11,7 +11,7 @@
       "fields": [
         {
           "key": "zeitstempel",
-          "label": "Zeitstempel (Sekundengenau)",
+          "label": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)",
           "type": "date/datetimeminute"
         },
         {
@@ -40,7 +40,7 @@
         "fields": [
           {
             "key": "zeitstempel",
-            "label": "Zeitstempel (Sekundengenau)",
+            "label": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)",
             "type": "date/datetimeminute",
             "required": true
           },

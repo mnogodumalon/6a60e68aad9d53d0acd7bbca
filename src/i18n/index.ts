@@ -1224,7 +1224,7 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
         "name": "Betriebsdaten",
         "app_id": "6a60e68007044c0b94964877",
         "fields": {
-          "zeitstempel": "Zeitstempel (Sekundengenau)",
+          "zeitstempel": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)",
           "messgroesse": "Messgröße",
           "wert": "Messwert",
           "einheit": "Einheit",
@@ -1241,7 +1241,7 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
         "name": "Operational Data",
         "app_id": "6a60e68007044c0b94964877",
         "fields": {
-          "zeitstempel": "Timestamp (Second Precision)",
+          "zeitstempel": "Timestamp (DD.MM.YYYY, HH:MM:SS)",
           "messgroesse": "Measured Variable",
           "wert": "Measured Value",
           "einheit": "Unit",

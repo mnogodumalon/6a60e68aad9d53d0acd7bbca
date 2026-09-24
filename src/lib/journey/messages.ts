@@ -16,7 +16,7 @@
  * bare „Dieses Feld ist erforderlich".
  *
  * Required fields per entity (from the base view):
- *   - betriebsdaten: zeitstempel (Zeitstempel (Sekundengenau)), messgroesse (Messgröße), wert (Messwert)
+ *   - betriebsdaten: zeitstempel (Zeitstempel (TT.MM.JJJJ, HH:MM:SS)), messgroesse (Messgröße), wert (Messwert)
  */
 import { t, tx } from '@/i18n';
 import { labelOf, type EntityKey } from './rules';

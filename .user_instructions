@@ -1,1 +1,11 @@
 ändere den zeitstempel auf sekundengenau
+
+zeitstempel wie er auch in der Liste ANGEZEIGT werden soll: TT.MM.JJJJ, StundeStunde:MinuteMinute:Sekunde:Sekunde
+
+ja nicht der name, das format, der name soll zeitstempel bleiben
+
+mir wird aber erstens im feld immer noch genau das selbe format angezeigt und der name ist auch falsch
+
+ok der name wurde geändert aber das feld nicht warum? überlege genau
+
+ja soll es aber nicht das format soll ja geändert werden damit zeitpunkte sekundengenau hinterlegt werden können
