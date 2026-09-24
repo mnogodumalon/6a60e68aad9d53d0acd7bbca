@@ -11,7 +11,7 @@
       "fields": [
         {
           "key": "zeitstempel",
-          "label": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)",
+          "label": "Zeitstempel",
           "type": "date/datetimeminute"
         },
         {
@@ -33,6 +33,11 @@
           "key": "bemerkung",
           "label": "Bemerkung",
           "type": "string/textarea"
+        },
+        {
+          "key": "sekunde",
+          "label": "Sekunde",
+          "type": "number"
         }
       ],
       "formEnhancements": {
@@ -40,7 +45,7 @@
         "fields": [
           {
             "key": "zeitstempel",
-            "label": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)",
+            "label": "Zeitstempel",
             "type": "date/datetimeminute",
             "required": true
           },
@@ -66,6 +71,12 @@
             "key": "bemerkung",
             "label": "Bemerkung",
             "type": "string/textarea",
+            "required": false
+          },
+          {
+            "key": "sekunde",
+            "label": "Sekunde",
+            "type": "number",
             "required": false
           }
         ]

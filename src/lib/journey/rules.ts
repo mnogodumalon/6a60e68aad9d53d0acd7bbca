@@ -105,7 +105,7 @@ export const FIELD_RULES: Record<EntityKey, Record<string, FieldRule>> = {
       "fulltype": "date/datetimeminute",
       "kind": "datetime",
       "required": true,
-      "label": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)",
+      "label": "Zeitstempel",
       "writable": true
     },
     "messgroesse": {
@@ -140,6 +140,14 @@ export const FIELD_RULES: Record<EntityKey, Record<string, FieldRule>> = {
       "kind": "textarea",
       "required": false,
       "label": "Bemerkung",
+      "writable": true
+    },
+    "sekunde": {
+      "key": "sekunde",
+      "fulltype": "number",
+      "kind": "number",
+      "required": false,
+      "label": "Sekunde",
       "writable": true
     }
   }

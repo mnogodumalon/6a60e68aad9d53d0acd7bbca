@@ -41,7 +41,7 @@
  *
  * Overlay content per entity (the host renders these — you never compose
  * Details blocks yourself):
- *   betriebsdaten: zeitstempel, messgroesse, wert, einheit, bemerkung
+ *   betriebsdaten: zeitstempel, messgroesse, wert, einheit, bemerkung, sekunde
  */
 import { useState, type ReactNode } from 'react';
 import type { Betriebsdaten } from '@/types/app';

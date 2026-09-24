@@ -22,6 +22,7 @@ export function BetriebsdatenDetails({
         <RecordField label={fieldLabel('betriebsdaten', 'wert')} value={record.fields.wert} format="text" />
         <RecordField label={fieldLabel('betriebsdaten', 'einheit')} value={record.fields.einheit} format="text" />
         <RecordField label={fieldLabel('betriebsdaten', 'bemerkung')} value={record.fields.bemerkung} format="longtext" className="md:col-span-2" />
+        <RecordField label={fieldLabel('betriebsdaten', 'sekunde')} value={record.fields.sekunde} format="text" />
       </RecordSection>
 
       <RecordAttachments appId={APP_IDS.BETRIEBSDATEN} recordId={record.record_id} />

@@ -43,6 +43,7 @@ export interface Betriebsdaten {
     wert?: number;
     einheit?: string;
     bemerkung?: string;
+    sekunde?: number;
   };
 }
 
@@ -60,6 +61,7 @@ export const FIELD_TYPES: Record<string, Record<string, string>> = {
     'wert': 'number',
     'einheit': 'string/text',
     'bemerkung': 'string/textarea',
+    'sekunde': 'number',
   },
 };
 

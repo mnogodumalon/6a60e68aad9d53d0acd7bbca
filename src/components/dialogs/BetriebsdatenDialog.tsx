@@ -221,7 +221,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         }
       }
       const photoContext = contextParts.length ? contextParts.join('\n') : undefined;
-      const schema = `{\n  "zeitstempel": string | null, // YYYY-MM-DDTHH:MM\n  "messgroesse": string | null, // Messgröße\n  "wert": number | null, // Messwert\n  "einheit": string | null, // Einheit\n  "bemerkung": string | null, // Bemerkung\n}`;
+      const schema = `{\n  "zeitstempel": string | null, // YYYY-MM-DDTHH:MM\n  "messgroesse": string | null, // Messgröße\n  "wert": number | null, // Messwert\n  "einheit": string | null, // Einheit\n  "bemerkung": string | null, // Bemerkung\n  "sekunde": number | null, // Sekunde\n}`;
       const raw = await extractFromInput<Record<string, unknown>>(schema, {
         dataUri: uri,
         userText: aiText.trim() || undefined,
@@ -355,6 +355,21 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         />
       </div>
     ),
+    'sekunde': (
+      <div key="sekunde" className="space-y-1.5">
+        <Label htmlFor="sekunde">{fieldLabel('betriebsdaten', 'sekunde')}</Label>
+        <Input
+          id="sekunde"
+          type="number"
+          inputMode="decimal"
+          step="any"
+          {...numberInputProps(formEnhancements, 'sekunde')}
+          placeholder=""
+          value={fields.sekunde !== undefined ? fields.sekunde : (computedValues['sekunde'] ?? '')}
+          onChange={e => setFields(f => ({ ...f, sekunde: clampNumberValue(formEnhancements, 'sekunde', e.target.value) }))}
+        />
+      </div>
+    ),
   };
   const orderedFields = applyFieldOrder(Object.keys(fieldBlocks), formEnhancements.fieldOrder);
   const orderedFieldsKey = orderedFields.map((it) => typeof it === 'string' ? it : it.row.join('+')).join(',');
@@ -369,7 +384,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
   //     kein passendes Backend-Feld in orderedFields) erscheinen NICHT als
   //     Input, sondern unten als kompakte 'Berechnungen'-Übersicht oder als
   //     Inline-Hint unter dem letzten beitragenden Input.
-  const FIELD_LABELS: Record<string, string> = {"zeitstempel": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)", "messgroesse": "Messgröße", "wert": "Messwert", "einheit": "Einheit", "bemerkung": "Bemerkung"};
+  const FIELD_LABELS: Record<string, string> = {"zeitstempel": "Zeitstempel", "messgroesse": "Messgröße", "wert": "Messwert", "einheit": "Einheit", "bemerkung": "Bemerkung", "sekunde": "Sekunde"};
   const CURRENCY_KEYS = new Set<string>([]);
   // Applookup-Referenz-Labels: pro applookup-Feld in dieser Form (ownKey)
   // eine Map { lookupKey: label } für ALLE Felder des Target-Schemas. Wird

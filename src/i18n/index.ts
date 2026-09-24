@@ -1224,11 +1224,12 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
         "name": "Betriebsdaten",
         "app_id": "6a60e68007044c0b94964877",
         "fields": {
-          "zeitstempel": "Zeitstempel (TT.MM.JJJJ, HH:MM:SS)",
+          "zeitstempel": "Zeitstempel",
           "messgroesse": "Messgröße",
           "wert": "Messwert",
           "einheit": "Einheit",
-          "bemerkung": "Bemerkung"
+          "bemerkung": "Bemerkung",
+          "sekunde": "Sekunde"
         },
         "lookups": {}
       }
@@ -1241,11 +1242,12 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
         "name": "Operational Data",
         "app_id": "6a60e68007044c0b94964877",
         "fields": {
-          "zeitstempel": "Timestamp (DD.MM.YYYY, HH:MM:SS)",
+          "zeitstempel": "Timestamp",
           "messgroesse": "Measured Variable",
           "wert": "Measured Value",
           "einheit": "Unit",
-          "bemerkung": "Remark"
+          "bemerkung": "Remark",
+          "sekunde": "Second"
         },
         "lookups": {}
       }
