@@ -39,10 +39,17 @@
  *  <RecordOverlay     open onClose onEdit? onBack?
  *                     placement?: 'side'|'center'   (default 'side')
  *                     size?: 'sm'|'md'|'lg'|'xl'    (default 'md')
- *                     media? footer? counter? onPrev? onNext? ariaLabel?
+ *                     media? footer?(ReactNode OR { label, onClick })
+ *                     counter? onPrev? onNext? ariaLabel?
  *                     closeOnBackdropClick?(default true) onBeforeClose?
  *                     editLabel? closeLabel? backLabel? prevLabel? nextLabel?
  *                     className? children>
+ *  <RecordOverlayHost overlay={stack}                 — THE one shell per page:
+ *                     render:  (top) => ReactNode      the whole stack renders in ONE
+ *                     footer?: (top) => ReactNode      <RecordOverlay>, so push/pop swaps
+ *                              OR { label, onClick }   the body without a remount blink.
+ *                     onEdit?: (top) => void           Back appears from depth 2 on.
+ *                     placement? size? className?>     Prefer this over open-flag overlays.
  *  <RecordHeader      title subtitle? media? badges? meta? actions? className?>
  *  <RecordKeyFacts    items: { label, value, icon? }[]   className?>
  *  <RecordSection     title? icon? cols?: 1|2|3 (default 1)  className? children>
@@ -84,19 +91,53 @@
  *  ❌ badges={[{ label: '…' }]} — `badges`/`meta`/`actions` are ReactNode SLOTS
  *     (TS2322): pass RENDERED elements, e.g. badges={<Badge>…</Badge>}. Only
  *     <RecordKeyFacts items> and <RecordTimeline items> take config arrays.
+ *     Exception by design: <RecordOverlay footer> ALSO accepts the family
+ *     action object { label, onClick } (WorkList/HeroBanner idiom) and
+ *     renders the standard full-width primary button from it.
  *  ❌ Forgetting <RecordAttachments> → files/notes silently vanish.
  *  ❌ A hand-rolled `fixed inset-0` modal for details → compose <RecordOverlay>.
  *
  * Full compiling example: ./RecordView.example.tsx
  *
- * @version 1.0.0
- * @since 2026-06-03
+ * @version 1.1.0
+ * @since 2026-07-27  (1.1.0: `footer` is shape-tolerant — ReactNode OR the
+ *                     family action object { label, onClick } (the WorkList/
+ *                     HeroBanner idiom); the object renders the standard
+ *                     full-width primary button. Two independent sessions
+ *                     inferred exactly that idiom on `footer` and hit TS2322 —
+ *                     the family generalization is now correct by design.
+ *                     New exports: RecordOverlayAction, RecordOverlayFooter;
+ *                     RecordOverlayHost's `footer` return type widened too.)
+ * @since 2026-06-03  (1.0.0: first release.)
  */
-import { type ReactNode, type ComponentType, useEffect, useRef, useState, useCallback } from 'react';
+import { type ReactNode, type ComponentType, isValidElement, useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { IconArrowLeft, IconPencil, IconX, IconAlertCircle, IconRefresh, IconFileOff, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatDateTime, formatCurrency } from '@/lib/formatters';
+import { coreLocale as i18nLocale, type CoreLocale as Locale } from '@/i18n';
+
+// The widget's OWN chrome labels. They are prop DEFAULTS, and a destructuring
+// default is evaluated per render — so `L()[...]` here stays language-fresh
+// while a hoisted `const label = ...` would not.
+const LABELS: Record<Locale, {
+  edit: string; close: string; back: string; prev: string; next: string;
+  notFound: string; loadError: string; retry: string; timelineEmpty: string;
+}> = {
+  de: {
+    edit: 'Bearbeiten', close: 'Schließen', back: 'Zurück',
+    prev: 'Vorheriges', next: 'Nächstes',
+    notFound: 'Eintrag nicht gefunden', loadError: 'Fehler beim Laden',
+    retry: 'Erneut versuchen', timelineEmpty: 'Noch keine Einträge',
+  },
+  en: {
+    edit: 'Edit', close: 'Close', back: 'Back',
+    prev: 'Previous', next: 'Next',
+    notFound: 'Entry not found', loadError: 'Failed to load',
+    retry: 'Try again', timelineEmpty: 'No entries yet',
+  },
+};
+const L = () => LABELS[i18nLocale];
 
 // RecordAttachments — exported under the widget namespace so the agent has a
 // single import path for every record-detail building block. The underlying
@@ -118,7 +159,7 @@ type RecordViewProps = {
   children?: ReactNode;
 };
 
-export function RecordView({ onBack, onEdit, editLabel = 'Bearbeiten', backLabel = 'Zurück', aside, className, children }: RecordViewProps) {
+export function RecordView({ onBack, onEdit, editLabel = L().edit, backLabel = L().back, aside, className, children }: RecordViewProps) {
   const topbar = (onBack || onEdit) ? (
     <div className="flex items-center justify-between gap-3">
       {onBack ? (
@@ -197,7 +238,7 @@ type RecordViewEmptyProps = {
   className?: string;
 };
 
-export function RecordViewEmpty({ icon: Icon = IconFileOff, title = 'Eintrag nicht gefunden', description, action, className }: RecordViewEmptyProps) {
+export function RecordViewEmpty({ icon: Icon = IconFileOff, title = L().notFound, description, action, className }: RecordViewEmptyProps) {
   return (
     <div className={`flex flex-col items-center justify-center py-24 gap-4 text-center${className ? ` ${className}` : ''}`}>
       <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
@@ -220,7 +261,7 @@ type RecordViewErrorProps = {
   className?: string;
 };
 
-export function RecordViewError({ error, title = 'Fehler beim Laden', onRetry, retryLabel = 'Erneut versuchen', className }: RecordViewErrorProps) {
+export function RecordViewError({ error, title = L().loadError, onRetry, retryLabel = L().retry, className }: RecordViewErrorProps) {
   const message = typeof error === 'string' ? error : error.message;
   return (
     <div className={`flex flex-col items-center justify-center py-24 gap-4 text-center${className ? ` ${className}` : ''}`}>
@@ -536,8 +577,11 @@ type RecordOverlayProps = {
    * Sticky footer slot, rendered OUTSIDE the scrollable content area so it
    * stays pinned to the bottom of the overlay. Use for primary actions that
    * must not scroll away — "Jetzt buchen", "Speichern", a confirm bar.
+   * Shape-tolerant: a rendered ReactNode, OR the family action object
+   * `{ label, onClick }` — the object renders the standard full-width
+   * primary button.
    */
-  footer?: ReactNode;
+  footer?: RecordOverlayFooter;
   /**
    * Whether a backdrop click closes the overlay. Default `true`. Set `false`
    * for flows where an accidental outside-click would lose unsaved work.
@@ -567,6 +611,19 @@ type RecordOverlayProps = {
   className?: string;
   children?: ReactNode;
 };
+
+/** The family action object (WorkList/HeroBanner idiom) — accepted by `footer`. */
+export type RecordOverlayAction = { label: ReactNode; onClick: () => void };
+export type RecordOverlayFooter = ReactNode | RecordOverlayAction;
+
+// ReactElements and arrays ARE ReactNodes — only a plain object carrying
+// label+onClick is the action shape.
+function isFooterAction(f: RecordOverlayFooter): f is RecordOverlayAction {
+  return (
+    typeof f === 'object' && f !== null && !Array.isArray(f) &&
+    !isValidElement(f) && 'label' in f && 'onClick' in f
+  );
+}
 
 const RECORD_OVERLAY_SIDE_SIZE: Record<NonNullable<RecordOverlayProps['size']>, string> = {
   sm: 'sm:max-w-md',
@@ -602,7 +659,8 @@ const RECORD_OVERLAY_CENTER_MEDIA_CONTENT: Record<NonNullable<RecordOverlayProps
  * `<RecordField>`, `<RecordRelation>`, `<RecordTimeline>` inside. Adjust the
  * outer shape via the layout hints (`placement`, `size`, `media`) and the
  * `footer` slot — never by editing this file. `footer` pins a bar to the
- * bottom (outside the scroll area). For unsaved-changes flows, set
+ * bottom (outside the scroll area) and accepts a ReactNode OR the family
+ * action object `{ label, onClick }`. For unsaved-changes flows, set
  * `closeOnBackdropClick={false}` and/or `onBeforeClose={() => confirm(…)}`.
  * For a gallery, add `onPrev`/`onNext` (+ `counter`) for edge-arrow paging —
  * NEVER hand-roll a `fixed inset-0` lightbox; this shell IS the lightbox.
@@ -634,9 +692,9 @@ export function RecordOverlay({
   onClose,
   onEdit,
   onBack,
-  editLabel = 'Bearbeiten',
-  closeLabel = 'Schließen',
-  backLabel = 'Zurück',
+  editLabel = L().edit,
+  closeLabel = L().close,
+  backLabel = L().back,
   ariaLabel,
   placement = 'side',
   size = 'md',
@@ -647,8 +705,8 @@ export function RecordOverlay({
   onPrev,
   onNext,
   counter,
-  prevLabel = 'Vorheriges',
-  nextLabel = 'Nächstes',
+  prevLabel = L().prev,
+  nextLabel = L().next,
   className,
   scrollKey,
   children,
@@ -657,6 +715,11 @@ export function RecordOverlay({
     if (onBeforeClose && onBeforeClose() === false) return;
     onClose();
   }, [onBeforeClose, onClose]);
+
+  // footer is shape-tolerant — normalize the action object ONCE, here.
+  const footerNode: ReactNode = footer != null && isFooterAction(footer)
+    ? <Button className="w-full" onClick={footer.onClick}>{footer.label}</Button>
+    : (footer as ReactNode);
 
   // Scroll-reset on stack navigation: the Host keeps ONE shell mounted while
   // the body swaps — without this, the next record opens mid-scroll.
@@ -774,7 +837,7 @@ export function RecordOverlay({
                 {children}
               </div>
             </div>
-            {footer && <div className="shrink-0 border-t border-border bg-card px-6 py-4">{footer}</div>}
+            {footerNode && <div className="shrink-0 border-t border-border bg-card px-6 py-4">{footerNode}</div>}
           </div>
         </div>
       </div>,
@@ -807,14 +870,14 @@ export function RecordOverlay({
             {children}
           </div>
         </div>
-        {footer && <div className="shrink-0 border-t border-border bg-card px-6 md:px-8 py-4">{footer}</div>}
+        {footerNode && <div className="shrink-0 border-t border-border bg-card px-6 md:px-8 py-4">{footerNode}</div>}
       </aside>
     </>,
     document.body,
   );
 }
 
-export function RecordTimeline({ items, empty = 'Noch keine Einträge', renderItem, className }: RecordTimelineProps) {
+export function RecordTimeline({ items, empty = L().timelineEmpty, renderItem, className }: RecordTimelineProps) {
   if (!items.length) return <div className="text-sm text-muted-foreground">{empty}</div>;
   if (renderItem) {
     return (
@@ -926,8 +989,9 @@ export interface RecordOverlayHostProps<T> {
   overlay: RecordOverlayStack<T>;
   /** Body für den obersten Eintrag — die EINE semantische Verzweigung (switch über top.type). */
   render: (top: T) => ReactNode;
-  /** Footer (Advance-Aktion) für den obersten Eintrag. */
-  footer?: (top: T) => ReactNode;
+  /** Footer (Advance-Aktion) für den obersten Eintrag — ReactNode oder das
+   *  Familien-Aktions-Objekt { label, onClick } (rendert den Standard-Button). */
+  footer?: (top: T) => RecordOverlayFooter;
   /** Bearbeiten-Pfad für den obersten Eintrag. */
   onEdit?: (top: T) => void;
   placement?: RecordOverlayProps['placement'];

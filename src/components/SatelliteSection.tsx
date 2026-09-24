@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
-import { IconPlus } from '@tabler/icons-react';
+import { IconPlus, IconLink } from '@tabler/icons-react';
 import { RecordSection, RecordRelation } from '@/components/widgets/RecordView';
+import { t } from '@/i18n';
 
 /**
  * SatelliteSection — one section of a hub record's overlay (hub-and-spoke).
@@ -14,7 +15,11 @@ import { RecordSection, RecordRelation } from '@/components/widgets/RecordView';
  *   2. clicking a row calls `onOpen` (→ open the record's DETAIL overlay via
  *      overlay.push), NEVER the edit form — editing happens from inside that
  *      detail;
- *   3. consistent header-with-count + relation-list + dashed-add layout.
+ *   3. consistent header-with-count + relation-list + dashed-add layout;
+ *   4. optional `onPick` — a second dashed action "choose existing" for
+ *      satellites whose members already exist before they join (a consultant,
+ *      a customer). EntityCrud wires it for every list-field (multipleapplookup)
+ *      back-reference; hand-rendered sections may pass it too.
  *
  * Render one per entity in HUB_TOPOLOGY[hubKey]; the gate checks completeness.
  *
@@ -50,15 +55,19 @@ interface SatelliteSectionProps<T> {
   onOpen: (item: T) => void;
   /** REQUIRED — the contextual "+" that opens this entity's create dialog with the hub pre-set. */
   onAdd: () => void;
-  /** Defaults to `${title} hinzufügen`. */
+  /** Defaults to a localised "add ${title}" label. */
   addLabel?: string;
+  /** Optional "choose existing" action — opens a picker that links an EXISTING record. */
+  onPick?: () => void;
+  /** Defaults to a localised "choose existing" label. */
+  pickLabel?: string;
   /** Section heading icon. */
   icon?: IconType;
   getKey?: (item: T) => string;
   emptyText?: string;
 }
 
-export function SatelliteSection<T,>({ title, items, map, onOpen, onAdd, addLabel, icon, getKey, emptyText }: SatelliteSectionProps<T>) {
+export function SatelliteSection<T,>({ title, items, map, onOpen, onAdd, addLabel, onPick, pickLabel, icon, getKey, emptyText }: SatelliteSectionProps<T>) {
   return (
     <RecordSection title={`${title} (${items.length})`} icon={icon}>
       <div className="flex flex-col gap-2">
@@ -77,16 +86,27 @@ export function SatelliteSection<T,>({ title, items, map, onOpen, onAdd, addLabe
         })}
         {items.length === 0 && (
           <p className="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-            {emptyText ?? `Noch keine ${title}.`}
+            {emptyText ?? t('sat_empty', { title })}
           </p>
         )}
-        <button
-          type="button"
-          onClick={onAdd}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
-        >
-          <IconPlus size={18} stroke={1.75} />{addLabel ?? `${title} hinzufügen`}
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={onAdd}
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
+          >
+            <IconPlus size={18} stroke={1.75} />{addLabel ?? t('sat_add', { title })}
+          </button>
+          {onPick && (
+            <button
+              type="button"
+              onClick={onPick}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
+            >
+              <IconLink size={18} stroke={1.75} />{pickLabel ?? t('sat_pick')}
+            </button>
+          )}
+        </div>
       </div>
     </RecordSection>
   );

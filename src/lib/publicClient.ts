@@ -14,6 +14,7 @@
 //      file stays language-free.
 
 import { Sentry } from '@/lib/sentry';
+import { LOOKUP_OPTIONS } from '@/types/app';
 
 // ---------------------------------------------------------------------------
 // Runtime config (public-pages.json)
@@ -67,20 +68,91 @@ export interface PublicPageConfig {
   fields: PublicFieldConfig[];
   /** Custom pages: which app_id serves which op (list/create). */
   endpoints?: PublicEndpointConfig[];
+  /** Declared when the page is reached with `?<name>=<record_id>`. The page
+   *  itself reads the value from the URL; this exists so the OWNER-facing
+   *  management UI can offer one link per record instead of the bare page
+   *  URL, which for such a page is a dead end. */
+  link_param?: {
+    name: string;
+    entity: string;
+    app_id: string;
+    label_field: string;
+    secondary_field?: string | null;
+  } | null;
 }
 
 export interface PublicPagesConfig {
   version: number;
   public_api_base: string;
   pages: Record<string, PublicPageConfig>;
+  /** Pages that exist but are not live (draft or paused). `pages` holds only
+   *  published ones, so this is the sidebar's only way to know whether there
+   *  is anything to publish. Absent in artifacts written before 0.0.281. */
+  unpublished_count?: number;
+  /** Owner preview of a draft: the data calls go through Klar with the
+   *  owner's session instead of a grant, because a draft has no grant. Set by
+   *  the service, never by a page. */
+  preview?: boolean;
+  /** Preview only: base path for the proxied record calls. */
+  preview_base?: string;
+  /** Preview only: the vSQL scope is NOT applied (the rest-service evaluates
+   *  it, not Klar), so a scoped list shows MORE rows than the live page. The
+   *  banner says so — reimplementing the filter here would be a second
+   *  derivation that drifts. */
+  preview_unscoped?: boolean;
 }
 
-/**
- * Loads ./public-pages.json relative to the deployed bundle. Returns null when
- * the file is absent (no page published yet), unparsable, or unreachable —
- * callers render the "unavailable" state for all of those.
- */
-export async function loadPublicPagesConfig(): Promise<PublicPagesConfig | null> {
+/** Owner preview of a page that is still a draft.
+ *
+ *  There is no preview FLAG and no preview BUTTON: the owner opens the page's
+ *  normal link (invitation links with their `?…=<record>` parameter included)
+ *  and simply sees it. That is the whole trick — a parameterised page has no
+ *  meaningful URL without its parameter, so any preview entry point that
+ *  invents its own link leads to a broken page.
+ *
+ *  Mechanically it is a FALLBACK, not a mode: the artifact is asked first and
+ *  only lists PUBLISHED pages, so a hit means "live" and nothing changes. A
+ *  miss is either a draft (then Klar answers with the owner's session, and the
+ *  page renders with the preview banner) or a stranger asking for a page that
+ *  is not public (then Klar refuses and the page stays unavailable).
+ *
+ *  A draft has no grant at all — grants are created on publish, so a draft
+ *  leaves zero footprint in the rest-service. The preview therefore runs its
+ *  data through Klar instead: same page code, same field projection, no
+ *  public exposure. */
+let previewActive = false;
+
+/** True once a preview config was loaded — PublicShell shows its banner from
+ *  this. Deliberately module state, not a prop: every page would otherwise
+ *  have to thread a flag through to the shell, and the ones that forgot would
+ *  silently show a draft with no warning that it is one. */
+export function isPreviewMode(): boolean {
+  return previewActive;
+}
+
+function previewBase(slug: string): string {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  const appgroupId = parts[parts.indexOf('objects') + 1] || '';
+  return `/claude/public-pages/${encodeURIComponent(appgroupId)}/${encodeURIComponent(slug)}/preview`;
+}
+
+async function loadPreviewConfig(slug: string): Promise<PublicPagesConfig | null> {
+  try {
+    const res = await fetch(previewBase(slug), {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const cfg = await res.json();
+    if (!cfg || typeof cfg !== 'object' || !cfg.pages) return null;
+    return cfg as PublicPagesConfig;
+  } catch {
+    return null;
+  }
+}
+
+async function loadArtifactConfig(): Promise<PublicPagesConfig | null> {
   try {
     const base = window.location.href.split('#')[0];
     const res = await fetch(new URL('public-pages.json', base).toString(), { cache: 'no-store' });
@@ -91,6 +163,27 @@ export async function loadPublicPagesConfig(): Promise<PublicPagesConfig | null>
   } catch {
     return null;
   }
+}
+
+/**
+ * Loads the page's runtime config: ./public-pages.json (published pages) with
+ * the owner preview as a fallback for drafts — see the preview note above.
+ * Returns null when the page is neither published nor previewable; callers
+ * render the "unavailable" state for that.
+ *
+ * ALWAYS pass the slug. Without it a draft cannot be recognised and the page
+ * is unavailable even to its owner.
+ */
+export async function loadPublicPagesConfig(slug?: string): Promise<PublicPagesConfig | null> {
+  const artifact = await loadArtifactConfig();
+  if (!slug) return artifact;
+  if (artifact && artifact.pages[slug]) return artifact;
+  const preview = await loadPreviewConfig(slug);
+  if (preview) {
+    previewActive = true;
+    return preview;
+  }
+  return artifact;
 }
 
 // ---------------------------------------------------------------------------
@@ -113,15 +206,19 @@ export class RateLimitedError extends Error {
   }
 }
 
-/** Server-side field policy rejection (400) with the offending field keys. */
+/** Server-side field policy rejection (400) with the offending field keys.
+ *  `detail` carries the server's problem+json diagnostic verbatim — pages own
+ *  the localized copy, but the diagnostic must stay reachable for debugging. */
 export class FieldValidationError extends Error {
   missingFields: string[];
   unallowedFields: string[];
-  constructor(missingFields: string[], unallowedFields: string[]) {
+  detail?: string;
+  constructor(missingFields: string[], unallowedFields: string[], detail?: string) {
     super('field validation failed');
     this.name = 'FieldValidationError';
     this.missingFields = missingFields;
     this.unallowedFields = unallowedFields;
+    this.detail = detail;
   }
 }
 
@@ -279,7 +376,8 @@ export function prepareChallenge(
   method: string,
   path: string,
 ): void {
-  if (page.challenge === 'none') return;
+  // No grant in a preview, so nothing to pre-solve against.
+  if (cfg.preview || page.challenge === 'none') return;
   const key = `${page.grant_id} ${method} ${path}`;
   if (prepared && prepared.key === key && prepared.staleAt > Date.now()) return;
   const tokenPromise = fetchChallenge(cfg.public_api_base, page.grant_id, method, path).then(solveChallenge);
@@ -323,6 +421,165 @@ export interface PublicRecordResult {
   updated_at: string | null;
 }
 
+/** A textarea that HOLDS A LIST but was typed on one line.
+ *
+ *  A page rendering such a field as tiles writes the natural
+ *  `value.split('\n')` — one item per line is the convention every form
+ *  implies. Owners type differently: a live landing page collapsed five
+ *  services into ONE tile because the record held
+ *  'Tagesbetreuung, Übernachtung, …' without a single line break.
+ *  Normalizing on READ makes that natural split correct whatever was typed,
+ *  so no page has to re-derive the heuristic (mirror of hydrateRecords in
+ *  livingAppsService — keep the two in step).
+ *
+ *  Conservative on purpose, prose must survive untouched: existing line
+ *  breaks win; ; • · | separate from two parts on; commas only with 3+ parts
+ *  that all read like labels — short, at most four words, no sentence
+ *  punctuation. The word cap is what keeps prose out: "Katzen und Kleintiere
+ *  aller Rassen" is short enough to pass a length test alone. A wrong guess
+ *  degrades to one item — never to mangled prose. */
+const LIST_LABEL_MAX = 40;
+const LIST_LABEL_MAX_WORDS = 4;
+
+function listTextToLines(text: string): string {
+  if (!text || /\r?\n/.test(text)) return text;
+  const bulleted = text.split(/\s*[;•·|]\s*/).map(s => s.trim()).filter(Boolean);
+  if (bulleted.length >= 2) return bulleted.join('\n');
+  const parts = text.split(/\s*,\s*/).map(s => s.trim()).filter(Boolean);
+  const looksLikeLabels = parts.length >= 3 && parts.every(p =>
+    p.length <= LIST_LABEL_MAX
+    && p.split(/\s+/).length <= LIST_LABEL_MAX_WORDS
+    && !/[.!?:]$/.test(p));
+  return looksLikeLabels ? parts.join('\n') : text;
+}
+
+function normalizeListTextareas(
+  body: Record<string, PublicRecordResult>,
+  page: PublicPageConfig,
+  appId: string,
+): Record<string, PublicRecordResult> {
+  // The page config carries each projected field's fulltype — no schema
+  // import needed on the anonymous surface.
+  const ep = page.endpoints?.find(e => e.op === 'list' && e.app_id === appId);
+  const areas = (ep?.fields ?? page.fields ?? [])
+    .filter(f => f.fulltype === 'string/textarea')
+    .map(f => f.key);
+  if (areas.length === 0) return body;
+  const out: Record<string, PublicRecordResult> = {};
+  for (const [id, rec] of Object.entries(body)) {
+    let touched = false;
+    const fields = { ...(rec?.fields ?? {}) };
+    for (const key of areas) {
+      const val = fields[key];
+      if (typeof val !== 'string') continue;
+      const next = listTextToLines(val);
+      if (next !== val) { fields[key] = next; touched = true; }
+    }
+    out[id] = touched ? { ...rec, fields } : rec;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// applookup normalization (value-level self-heal)
+// ---------------------------------------------------------------------------
+
+/**
+ * Rewrites applookup reference values to the portable bare suffix
+ * `/apps/{target_app_id}/records/{record_id}` before submitting.
+ *
+ * The anonymous surface rejects references written for the wrong surface (a
+ * hand-built `…/rest/apps/…` URL — the dokument-einreichen incident) with a
+ * 400, and source-level lint rules provably miss glued-together forms.
+ * Normalizing at the VALUE level heals every assembly form identically,
+ * whatever code produced it; the bare suffix is accepted by every service
+ * version. Only fields the page config declares as applookup (with a target
+ * app) are touched, and only values that point into this deployment — a
+ * foreign host is a real error the server must keep diagnosing, not
+ * something to paper over. A healed wrong-surface/wrong-grant form warns and
+ * leaves a Sentry breadcrumb: silent healing would hide that some code still
+ * assembles references the wrong way.
+ */
+function normalizeApplookupRefs(
+  cfg: PublicPagesConfig,
+  page: PublicPageConfig,
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  const refFields = new Map<string, string>(); // field key -> target_app_id
+  for (const f of page.fields) {
+    if (f.fulltype.includes('applookup') && f.target_app_id) refFields.set(f.key, f.target_app_id);
+  }
+  for (const ep of page.endpoints ?? []) {
+    if (ep.op !== 'create' || ep.app_id !== page.app_id) continue;
+    for (const f of ep.fields) {
+      if (f.fulltype.includes('applookup') && f.target_app_id) refFields.set(f.key, f.target_app_id);
+    }
+  }
+  if (refFields.size === 0) return fields;
+
+  const toSuffix = (key: string, targetAppId: string, value: unknown): unknown => {
+    if (typeof value !== 'string' || value === '') return value;
+    const marker = `/apps/${targetAppId}/records/`;
+    const idx = value.lastIndexOf(marker);
+    if (idx === -1) return value; // not a URL for the target app — server diagnoses
+    const recordId = value.slice(idx + marker.length);
+    if (!/^[a-f0-9]{24}$/.test(recordId)) return value;
+    const prefix = value.slice(0, idx);
+    if (prefix !== '' && !prefix.startsWith('/')) {
+      try {
+        if (new URL(prefix).origin !== new URL(cfg.public_api_base).origin) return value;
+      } catch {
+        return value;
+      }
+    }
+    const grantInPrefix = /\/grants\/([a-f0-9]{24})$/.exec(prefix);
+    const wrongForm =
+      prefix.endsWith('/rest') || prefix.includes('/rest/') ||
+      (grantInPrefix !== null && grantInPrefix[1] !== page.grant_id);
+    if (wrongForm) {
+      const received = `${prefix}${marker}<record-id>`;
+      try {
+        console.warn(`publicClient: normalized applookup value for '${key}' (received: ${received})`);
+        Sentry.addBreadcrumb({
+          category: 'public-pages',
+          message: `normalized applookup '${key}' from: ${received}`,
+          level: 'warning',
+        });
+      } catch {
+        // Sentry unavailable
+      }
+    }
+    return `${marker}${recordId}`;
+  };
+
+  const out: Record<string, unknown> = { ...fields };
+  for (const [key, targetAppId] of refFields) {
+    const value = out[key];
+    if (value === undefined || value === null) continue;
+    out[key] = Array.isArray(value)
+      ? value.map((v) => toSuffix(key, targetAppId, v))
+      : toSuffix(key, targetAppId, value);
+  }
+  return out;
+}
+
+
+/**
+ * Preset fields are server-owned: the grant writes them onto every record and
+ * rejects a request that carries them (`unallowed_fields` + `preset_fields`
+ * in the 400 — live-seen when a page sent `status: 'anfrage'` next to its own
+ * `preset_fields: { status: 'anfrage' }`). Whatever a page puts there is
+ * dropped here, so the declaration alone decides.
+ */
+function dropPresetFields(page: PublicPageConfig, fields: Record<string, unknown>): Record<string, unknown> {
+  const ep = page.endpoints?.find(e => e.op === 'create' && e.app_id === page.app_id);
+  const preset = ep?.preset_fields;
+  if (!preset) return fields;
+  const out = { ...fields };
+  for (const key of Object.keys(preset)) delete out[key];
+  return out;
+}
+
 async function throwSubmitError(res: Response): Promise<never> {
   if (res.status === 404 || res.status === 405) throw new PageUnavailableError();
   if (res.status === 429) throw new RateLimitedError();
@@ -338,7 +595,23 @@ async function throwSubmitError(res: Response): Promise<never> {
       Array.isArray(detail.unallowed_fields) ? (detail.unallowed_fields as string[]) : [],
       Array.isArray(detail.preset_fields) ? (detail.preset_fields as string[]) : [],
     );
-    throw new FieldValidationError(missing, unallowed);
+    // problem+json `detail` is the server's diagnostic (e.g. which record-URL
+    // forms an applookup accepts). Dropping it made the dokument-einreichen
+    // 400 undiagnosable in the UI — carry it on the error, and report a 400
+    // that maps to NO field (illegal_field_value etc.) to Sentry.
+    const detailText = typeof detail.detail === 'string' ? detail.detail : `HTTP ${res.status}`;
+    if (missing.length > 0 || unallowed.length > 0) {
+      throw new FieldValidationError(missing, unallowed, detailText);
+    }
+    try {
+      Sentry.captureException(new Error(`public submit rejected: ${detailText}`), {
+        tags: { feature: 'public-pages' },
+        extra: { detail },
+      });
+    } catch {
+      // Sentry unavailable
+    }
+    throw new SubmitFailedError(detailText);
   }
   try {
     Sentry.captureException(new Error(`public submit failed: HTTP ${res.status}`), {
@@ -361,7 +634,20 @@ export async function createPublicRecord(
   page: PublicPageConfig,
   fields: Record<string, unknown>,
 ): Promise<PublicRecordResult> {
+  fields = dropPresetFields(page, normalizeApplookupRefs(cfg, page, fields));
   const path = `/apps/${page.app_id}/records`;
+  if (cfg.preview) {
+    // A preview submit creates a REAL record — deliberately: a form you
+    // cannot send is exactly the half that needs testing. The banner says so.
+    const res = await fetch(`${cfg.preview_base}/records`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ app_id: page.app_id, fields }),
+    });
+    if (!res.ok) await throwSubmitError(res);
+    return (await res.json()) as PublicRecordResult;
+  }
   for (let attempt = 0; ; attempt++) {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -392,6 +678,29 @@ export async function createPublicRecord(
  * agent-built pages (e.g. free slots on a booking page); read pages
  * typically run with challenge 'none', so no PoW cost per fetch.
  */
+/** Lookup values as `{ key, label }` — the grant delivers bare keys, the
+ *  internal door objects. publicPort hydrated its own reads since 0.0.411, but a
+ *  page calling listPublicRecords directly still saw raw keys (live: department
+ *  cards "fussball / turnen / tennis"). Hydrating here makes every read path
+ *  agree; a value that is already an object stays as it is, so the port's own
+ *  pass is a no-op on top. */
+function hydrateListLookups(page: PublicPageConfig, appId: string, body: Record<string, PublicRecordResult>): Record<string, PublicRecordResult> {
+  const entity = page.endpoints?.find(e => e.app_id === appId)?.entity;
+  const opts = entity ? (LOOKUP_OPTIONS as Record<string, Record<string, Array<{ key: string; label: string }>> | undefined>)[entity] : undefined;
+  if (!opts) return body;
+  const objectFor = (options: Array<{ key: string; label: string }>, v: string) => options.find(o => o.key === v) ?? { key: v, label: v };
+  for (const rec of Object.values(body)) {
+    const fields = rec?.fields as Record<string, unknown> | undefined;
+    if (!fields) continue;
+    for (const [fieldKey, options] of Object.entries(opts)) {
+      const val = fields[fieldKey];
+      if (typeof val === 'string' && val !== '') fields[fieldKey] = objectFor(options, val);
+      else if (Array.isArray(val) && val.some(v => typeof v === 'string')) fields[fieldKey] = val.map(v => (typeof v === 'string' ? objectFor(options, v) : v));
+    }
+  }
+  return body;
+}
+
 export async function listPublicRecords(
   cfg: PublicPagesConfig,
   page: PublicPageConfig,
@@ -403,6 +712,16 @@ export async function listPublicRecords(
   if (opts.limit !== undefined) params.set('limit', String(opts.limit));
   if (opts.offset !== undefined) params.set('offset', String(opts.offset));
   const query = params.size > 0 ? `?${params.toString()}` : '';
+  if (cfg.preview) {
+    // Owner preview: no grant exists yet, so Klar reads with the session and
+    // applies the same field projection.
+    const res = await fetch(`${cfg.preview_base}/records?app_id=${encodeURIComponent(appId)}`, {
+      credentials: 'include', headers: { Accept: 'application/json' }, cache: 'no-store',
+    });
+    if (!res.ok) throw new PageUnavailableError();
+    const body = (await res.json()) as Record<string, PublicRecordResult>;
+    return hydrateListLookups(page, appId, normalizeListTextareas(body, page, appId));
+  }
   for (let attempt = 0; ; attempt++) {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (page.challenge !== 'none') {
@@ -414,8 +733,37 @@ export async function listPublicRecords(
     } catch (err) {
       throw new SubmitFailedError(err instanceof Error ? err.message : 'network error');
     }
-    if (res.ok) return (await res.json()) as Record<string, PublicRecordResult>;
+    if (res.ok) {
+      const body = (await res.json()) as Record<string, PublicRecordResult>;
+      return hydrateListLookups(page, appId, normalizeListTextareas(body, page, appId));
+    }
     if (res.status === 403 && attempt === 0 && page.challenge !== 'none') continue;
     await throwSubmitError(res);
   }
+}
+
+/**
+ * Reference URL for a record of another entity — the value an applookup field
+ * expects when you CREATE a record through a grant.
+ *
+ * The anonymous surface accepts ONLY grant-scoped URLs. A hand-built
+ * `…/rest/apps/{app}/records/{id}` is rejected with 400 "Unsupported field
+ * value" (live-proven: a course registration wrote the participant reference
+ * that way and every submit failed at the second create). Never assemble such
+ * a URL yourself — use this helper, or pass through a reference URL exactly as
+ * a list response returned it (those are already grant-scoped).
+ *
+ *   const teilnehmer = await createPublicRecord(cfg, tnPage, tnFields);
+ *   await createPublicRecord(cfg, anmPage, {
+ *     teilnehmer: recordRef(cfg, page, tnEp.app_id, teilnehmer.id),
+ *     kursangebot: recordRef(cfg, page, kaEp.app_id, selectedId),
+ *   });
+ */
+export function recordRef(
+  cfg: PublicPagesConfig,
+  page: PublicPageConfig,
+  appId: string,
+  recordId: string,
+): string {
+  return `${cfg.public_api_base}/grants/${page.grant_id}/apps/${appId}/records/${recordId}`;
 }

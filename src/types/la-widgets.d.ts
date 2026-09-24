@@ -29,6 +29,15 @@ declare namespace React {
         'show-dashboard'?: string;
       }>;
       'la-dashboard-link-widget': LaWidgetProps<{ 'app-id'?: string }>;
+      /** Sidebar list of the app group's public pages — the platform's own
+       *  widget (UL4 sidebar): reads /objects/<group>/public-pages.json, one
+       *  row per published page, then 'Seiten verwalten'. */
+      'la-public-pages-widget': LaWidgetProps<{ 'group-id'?: string; 'app-id'?: string }>;
+      /** Sidebar list of the app group's actions (actions-agent): run, code,
+       *  description per row, 'Alle Aktionen' last. */
+      'la-actions-widget': LaWidgetProps<{ 'group-id'?: string; 'app-id'?: string; 'max-items'?: string }>;
+      /** Files produced by actions; hides itself while there are none. */
+      'la-action-files-widget': LaWidgetProps<{ 'group-id'?: string; 'app-id'?: string; 'max-items'?: string }>;
       'la-app-group-copy-widget': LaWidgetProps<{
         open?: boolean;
         'data-grp-id'?: string;
@@ -44,6 +53,15 @@ declare namespace React {
         mode?: 'navigate' | 'select';
         'data-nav'?: string;
       }>;
+      /** Klar assistant (chat + Werkzeuge + code viewer) — platform chrome,
+       *  loaded via /actions-agent/embed/embed.js. `actions-open` is a state
+       *  attribute: setting it opens the actions drawer, the element reflects
+       *  it back on open/close. Events: dispatches assistant:data-changed
+       *  (bubbles + composed) after every mutation. */
+      'la-klar-assistant': LaWidgetProps<{
+        'appgroup-id'?: string;
+        'actions-open'?: boolean;
+      }>;
       'la-nav-section': LaWidgetProps<{
         type?: 'primary' | 'secondary';
         label?: string;
@@ -55,7 +73,6 @@ declare namespace React {
         scroll?: boolean;
         'max-height'?: string;
         collapsed?: boolean;
-        dense?: boolean;
       }>;
     }
   }

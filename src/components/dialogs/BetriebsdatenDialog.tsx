@@ -1,3 +1,17 @@
+/**
+ * BetriebsdatenDialog — pre-generated create/edit dialog for Betriebsdaten.
+ *
+ * Props: open, onClose, onSubmit(fields) => Promise<void>, defaultValues?,
+ * recordId? (pass when EDITING — enables the attachments section),
+ * enablePhotoScan?, enablePhotoLocation?.
+ *
+ * defaultValues is SHAPE-TOLERANT and its prop type is the EXPORTED
+ * BetriebsdatenDialogDefaults — NOT the entity field type: lookup fields accept
+ * the bare KEY string (or LookupValue), applookup fields the bare record id
+ * (or record URL); the dialog normalizes. Type prefill STATE with the export:
+ *  ❌ useState<Partial<Betriebsdaten['fields']>>({ … })   // LookupValue fields reject string prefills (TS2322)
+ *  ✓ useState<BetriebsdatenDialogDefaults | undefined>(undefined)
+ */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Betriebsdaten } from '@/types/app';
 import { APP_IDS } from '@/types/app';
@@ -13,11 +27,16 @@ import type { ComputedContext } from '@/config/form-enhancements/types';
 import { applyFieldOrder, flattenFieldOrder, applyDefaults, evalComputed, numberInputProps, clampNumberValue, classifyComputed, extractApplookupRefs, mergeApplookupRefs, resolveApplookupRef } from '@/config/form-enhancements/types';
 import { formEnhancements, computedDeps, computedApplookupRefs } from '@/config/form-enhancements/Betriebsdaten';
 import { AttachmentsSection } from '@/components/AttachmentsSection';
+import { requiredMessage } from '@/lib/journey/messages';
+import { t, appLabel, fieldLabel, lookupLabel, localeTag, CURRENCY } from '@/i18n';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/DatePicker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconAlertCircle, IconCamera, IconChevronDown, IconCircleCheck, IconClipboard, IconFileText, IconLoader2, IconPhotoPlus, IconSparkles, IconUpload, IconX } from '@tabler/icons-react';
 import { fileToDataUri, extractFromInput, extractPhotoMeta, reverseGeocode } from '@/lib/ai';
+
+/** Widened prefill type for BetriebsdatenDialog.defaultValues — see file header. */
+export type BetriebsdatenDialogDefaults = Betriebsdaten['fields'];
 
 interface BetriebsdatenDialogProps {
   open: boolean;
@@ -26,7 +45,7 @@ interface BetriebsdatenDialogProps {
   /** SHAPE-TOLERANT: lookup fields accept the bare key (string) or the
    *  LookupValue object; applookup fields the bare record id or the full
    *  record URL — the dialog normalizes both. */
-  defaultValues?: Betriebsdaten['fields'];
+  defaultValues?: BetriebsdatenDialogDefaults;
   /** Record id when editing — enables the attachments section. Omit on create. */
   recordId?: string;
   enablePhotoScan?: boolean;
@@ -160,7 +179,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
       await onSubmit(clean as Betriebsdaten['fields']);
       onClose();
     } catch (err) {
-      setSubmitError(err instanceof Error && err.message ? err.message : 'Speichern fehlgeschlagen.');
+      setSubmitError(err instanceof Error && err.message ? err.message : t('submit_error'));
     } finally {
       setSaving(false);
     }
@@ -224,7 +243,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
       setScanSuccess(true);
       setTimeout(() => setScanSuccess(false), 3000);
     } catch (err) {
-      console.error('Scan fehlgeschlagen:', err);
+      console.error(`${t('scan_error')}:`, err);
       alert(err instanceof Error ? err.message : String(err));
     } finally {
       setScanning(false);
@@ -259,12 +278,14 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
     }
   }, []);
 
-  const DIALOG_INTENT = defaultValues ? 'Betriebsdaten bearbeiten' : 'Betriebsdaten hinzufügen';
+  const DIALOG_INTENT = defaultValues
+    ? t('edit_entity', { entity: appLabel('betriebsdaten') })
+    : t('new_entity', { entity: appLabel('betriebsdaten') });
 
   const fieldBlocks: Record<string, React.ReactNode> = {
     'zeitstempel': (
       <div key="zeitstempel" className="space-y-1.5">
-        <Label htmlFor="zeitstempel">Zeitstempel <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="zeitstempel">{fieldLabel('betriebsdaten', 'zeitstempel')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="zeitstempel"
           placeholder=""
@@ -274,13 +295,13 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
           required
         />
         {showErrors && !fields.zeitstempel && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('betriebsdaten', 'zeitstempel')}</p>
         )}
       </div>
     ),
     'messgroesse': (
       <div key="messgroesse" className="space-y-1.5">
-        <Label htmlFor="messgroesse">Messgröße <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="messgroesse">{fieldLabel('betriebsdaten', 'messgroesse')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="messgroesse"
           placeholder=""
@@ -289,16 +310,17 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
           required
         />
         {showErrors && !fields.messgroesse && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('betriebsdaten', 'messgroesse')}</p>
         )}
       </div>
     ),
     'wert': (
       <div key="wert" className="space-y-1.5">
-        <Label htmlFor="wert">Messwert <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="wert">{fieldLabel('betriebsdaten', 'wert')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="wert"
           type="number"
+          inputMode="decimal"
           step="any"
           {...numberInputProps(formEnhancements, 'wert')}
           placeholder=""
@@ -306,13 +328,13 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
           onChange={e => setFields(f => ({ ...f, wert: clampNumberValue(formEnhancements, 'wert', e.target.value) }))}
         />
         {showErrors && !fields.wert && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('betriebsdaten', 'wert')}</p>
         )}
       </div>
     ),
     'einheit': (
       <div key="einheit" className="space-y-1.5">
-        <Label htmlFor="einheit">Einheit</Label>
+        <Label htmlFor="einheit">{fieldLabel('betriebsdaten', 'einheit')}</Label>
         <Input
           id="einheit"
           placeholder=""
@@ -323,7 +345,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'bemerkung': (
       <div key="bemerkung" className="space-y-1.5">
-        <Label htmlFor="bemerkung">Bemerkung</Label>
+        <Label htmlFor="bemerkung">{fieldLabel('betriebsdaten', 'bemerkung')}</Label>
         <Textarea
           id="bemerkung"
           placeholder=""
@@ -402,9 +424,9 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
     // Backend-Feld mit €-Label ODER virtueller Computed-Key, dessen Name nach Geld aussieht.
     const looksLikeCurrency = CURRENCY_KEYS.has(k) || /(?:kosten|preis|betrag|gesamt|netto|brutto|summe|mwst|rabatt|anzahlung|umsatz|saldo)/i.test(k);
     if (looksLikeCurrency) {
-      return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return n.toLocaleString(localeTag(), { style: 'currency', currency: CURRENCY, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    return n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+    return n.toLocaleString(localeTag(), { maximumFractionDigits: 2 });
   }
 
   return (
@@ -426,14 +448,14 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
               }`}
             >
               <IconSparkles className={`h-3.5 w-3.5 ${aiOpen ? '' : 'text-primary'}`} />
-              <span className="hidden sm:inline">KI-Ausfüllen</span>
+              <span className="hidden sm:inline">{t('smart_fill')}</span>
               <IconChevronDown className={`h-3 w-3 transition-transform ${aiOpen ? 'rotate-180' : ''}`} />
             </button>
           )}
         </DialogHeader>
         {enablePhotoScan && aiOpen && (
           <div id="ai-fill-panel" className="border-b bg-muted/20 px-6 py-4 space-y-3">
-            <p className="text-xs text-muted-foreground">Versteht Fotos, Dokumente und Text und füllt alles für dich aus</p>
+            <p className="text-xs text-muted-foreground">{t('scan_header_sub')}</p>
             <div className="flex items-start gap-2 pl-0.5">
               <Checkbox
                 id="ai-use-personal-info"
@@ -443,21 +465,21 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
               />
               <span className="text-xs text-muted-foreground leading-snug">
                 <Label htmlFor="ai-use-personal-info" className="text-xs font-normal text-muted-foreground cursor-pointer inline">
-                  KI-Assistent darf zusätzlich Informationen zu meiner Person verwenden
+                  {t('useinfo_label')}
                 </Label>
                 {' '}
                 <button type="button" onClick={handleShowProfileInfo} className="text-xs text-primary hover:underline whitespace-nowrap">
-                  {profileLoading ? 'Lade...' : '(mehr Infos)'}
+                  {profileLoading ? t('useinfo_loading') : `(${t('useinfo_more')})`}
                 </button>
               </span>
             </div>
             {showProfileInfo && (
               <div className="rounded-md border bg-muted/50 p-2 text-xs max-h-40 overflow-y-auto">
-                <p className="font-medium mb-1">Folgende Infos über dich können von der KI genutzt werden:</p>
+                <p className="font-medium mb-1">{t('profile_preamble')}</p>
                 {profileData ? Object.values(profileData).map((v, i) => (
                   <span key={i}>{i > 0 && ", "}{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
                 )) : (
-                  <span className="text-muted-foreground">Profil konnte nicht geladen werden</span>
+                  <span className="text-muted-foreground">{t('useinfo_error')}</span>
                 )}
               </div>
             )}
@@ -488,8 +510,8 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
                     <IconLoader2 className="h-7 w-7 text-primary animate-spin" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">KI analysiert...</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Felder werden automatisch ausgefüllt</p>
+                    <p className="text-sm font-medium">{t('scan_analyzing')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_analyzing_sub')}</p>
                   </div>
                 </div>
               ) : scanSuccess ? (
@@ -498,8 +520,8 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
                     <IconCircleCheck className="h-7 w-7 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-400">Felder ausgefüllt!</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Prüfe die Werte und passe sie ggf. an</p>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-400">{t('scan_success')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_success_sub')}</p>
                   </div>
                 </div>
               ) : (
@@ -508,7 +530,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
                     <IconPhotoPlus className="h-7 w-7 text-primary/70" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">Foto oder Dokument hierher ziehen oder auswählen</p>
+                    <p className="text-sm font-medium">{t('scan_upload')}</p>
                   </div>
                 </div>
               )}
@@ -532,11 +554,11 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
             <div className="grid grid-cols-3 gap-2">
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); cameraInputRef.current?.click(); }}>
-                <IconCamera className="h-3.5 w-3.5 mr-1" />Kamera
+                <IconCamera className="h-3.5 w-3.5 mr-1" />{t('scan_camera_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>
-                <IconUpload className="h-3.5 w-3.5 mr-1" />Foto wählen
+                <IconUpload className="h-3.5 w-3.5 mr-1" />{t('scan_file_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => {
@@ -547,13 +569,13 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
                     setTimeout(() => { if (fileInputRef.current) fileInputRef.current.accept = 'image/*,application/pdf'; }, 100);
                   }
                 }}>
-                <IconFileText className="h-3.5 w-3.5 mr-1" />Dokument
+                <IconFileText className="h-3.5 w-3.5 mr-1" />{t('scan_doc_btn')}
               </Button>
             </div>
 
             <div className="relative">
               <Textarea
-                placeholder="Text eingeben oder einfügen, z.B. Notizen, E-Mails, Beschreibungen..."
+                placeholder={t('scan_text_placeholder')}
                 value={aiText}
                 onChange={e => {
                   setAiText(e.target.value);
@@ -581,7 +603,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
                     if (text) setAiText(prev => prev ? prev + '\n' + text : text);
                   } catch {}
                 }}
-                title="Paste"
+                title={t('paste')}
               >
                 <IconClipboard className="h-4 w-4" />
               </button>
@@ -595,7 +617,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
                 disabled={scanning}
                 onClick={() => handleAiExtract()}
               >
-                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />Analysieren
+                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />{t('scan_text_analyze')}
               </Button>
             )}
           </div>
@@ -690,7 +712,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
             {showErrors && missingRequired.length > 0 && (
               <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
                 <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
-                Bitte fülle die markierten Pflichtfelder aus.
+                {t('missing_required')}
               </p>
             )}
             {recordId && (
@@ -706,13 +728,13 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
             </div>
           )}
           <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
-            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">{t('cancel')}</Button>
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
-              {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
+              {saving ? t('saving') : defaultValues ? t('save') : t('create')}
             </Button>
           </DialogFooter>
         </form>

@@ -33,6 +33,7 @@ import { BetriebsdatenDetails } from '@/components/details/BetriebsdatenDetails'
 import { BetriebsdatenDialog } from '@/components/dialogs/BetriebsdatenDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { AI_PHOTO_SCAN, AI_PHOTO_LOCATION } from '@/config/ai-features';
+import { tx } from '@/i18n';
 
 const APPGROUP_ID = '6a60e68aad9d53d0acd7bbca';
 const REPAIR_ENDPOINT = '/claude/build/repair';
@@ -88,7 +89,7 @@ export default function DashboardOverview() {
   const columns = useMemo<TableColumn<Betriebsdaten>[]>(() => [
     {
       key: 'zeitstempel',
-      label: 'Zeitstempel',
+      label: tx('Zeitstempel'),
       accessor: r => r.data.fields.zeitstempel,
       format: 'datetime',
       filterable: true,
@@ -97,7 +98,7 @@ export default function DashboardOverview() {
     },
     {
       key: 'messgroesse',
-      label: 'Messgröße',
+      label: tx('Messgröße'),
       accessor: r => r.data.fields.messgroesse,
       format: 'pill',
       filterable: true,
@@ -106,14 +107,14 @@ export default function DashboardOverview() {
     },
     {
       key: 'wert',
-      label: 'Messwert',
+      label: tx('Messwert'),
       accessor: r => r.data.fields.wert,
       format: 'number',
       aggregate: 'avg',
     },
     {
       key: 'einheit',
-      label: 'Einheit',
+      label: tx('Einheit'),
       accessor: r => r.data.fields.einheit,
       format: 'text',
     },
@@ -130,7 +131,7 @@ export default function DashboardOverview() {
     setBetriebsdaten(prev => prev.map(r =>
       r.record_id === editRecord.record_id ? { ...r, fields: { ...r.fields, ...fields } } : r
     ));
-    undoToast('Eintrag aktualisiert', () => {
+    undoToast(tx('Eintrag aktualisiert'), () => {
       setBetriebsdaten(snapshot);
       void LivingAppsService.updateBetriebsdatenEntry(editRecord.record_id, editRecord.fields);
     });
@@ -141,7 +142,7 @@ export default function DashboardOverview() {
     if (!deleteTarget) return;
     const snapshot = betriebsdaten;
     setBetriebsdaten(prev => prev.filter(r => r.record_id !== deleteTarget.record_id));
-    undoToast('Eintrag gelöscht', () => {
+    undoToast(tx('Eintrag gelöscht'), () => {
       setBetriebsdaten(snapshot);
     });
     LivingAppsService.deleteBetriebsdatenEntry(deleteTarget.record_id).catch(() => fetchAll());
@@ -167,8 +168,8 @@ export default function DashboardOverview() {
   }, {});
   const aktiveBereiche = Object.keys(bereichCounts).length;
   const contextLine = betriebsdaten.length === 0
-    ? 'Noch keine Betriebsdaten erfasst — starte jetzt mit der ersten Messung.'
-    : `${betriebsdaten.length} Messwerte erfasst, heute ${todayEntries.length} neu — ${aktiveBereiche} Bereiche aktiv.`;
+    ? tx('Noch keine Betriebsdaten erfasst — starte jetzt mit der ersten Messung.')
+    : tx`${betriebsdaten.length} Messwerte erfasst, heute ${todayEntries.length} neu — ${aktiveBereiche} Bereiche aktiv.`;
 
   return (
     <>
@@ -180,7 +181,7 @@ export default function DashboardOverview() {
         </div>
         <Button onClick={() => { setEditRecord(null); setDialogOpen(true); }}>
           <IconPlus size={16} className="mr-1.5 shrink-0" />
-          Messwert erfassen
+          {tx('Messwert erfassen')}
         </Button>
       </div>
 
@@ -189,13 +190,13 @@ export default function DashboardOverview() {
         kpis={
           <StatStrip>
             <StatStripItem
-              title="Gesamt"
+              title={tx('Gesamt')}
               value={betriebsdaten.length}
               icon={<IconGauge size={16} className="shrink-0" />}
               tone="default"
             />
             <StatStripItem
-              title="Heute erfasst"
+              title={tx('Heute erfasst')}
               value={todayEntries.length}
               icon={<IconFlame size={16} className="shrink-0" />}
               tone={todayEntries.length > 0 ? 'success' : 'default'}
@@ -220,17 +221,17 @@ export default function DashboardOverview() {
               columns={columns}
               rows={tableRows}
               initialSort={{ key: 'zeitstempel', dir: 'desc' }}
-              searchPlaceholder="Messwert suchen …"
+              searchPlaceholder={tx('Messwert suchen …')}
               exportable
               actions={[
                 {
                   icon: IconPencil,
-                  label: 'Bearbeiten',
+                  label: tx('Bearbeiten'),
                   onClick: row => openEdit(row.data),
                 },
                 {
                   icon: IconTrash,
-                  label: 'Löschen',
+                  label: tx('Löschen'),
                   tone: 'destructive',
                   onClick: row => setDeleteTarget(row.data),
                 },
@@ -242,7 +243,7 @@ export default function DashboardOverview() {
         aside={
           <>
             <WorkList
-              title="Zuletzt erfasst"
+              title={tx('Zuletzt erfasst')}
               icon={<IconGauge size={14} className="shrink-0" />}
               items={recentEntries.map(r => ({
                 id: r.record_id,
@@ -267,17 +268,17 @@ export default function DashboardOverview() {
                 if (r) overlay.replace({ type: 'betriebsdaten', record: r });
               }}
               empty={{
-                text: 'Noch keine Messwerte — erfasse den ersten Wert.',
-                action: { label: '+ Erfassen', onClick: () => { setEditRecord(null); setDialogOpen(true); } },
+                text: tx('Noch keine Messwerte — erfasse den ersten Wert.'),
+                action: { label: tx('+ Erfassen'), onClick: () => { setEditRecord(null); setDialogOpen(true); } },
               }}
             />
             <ChartWidget
-              title="Messungen je Bereich"
+              title={tx('Messungen je Bereich')}
               rows={chartRows}
               dimension={{
                 kind: 'category',
                 accessor: r => r.data.fields.messgroesse,
-                label: 'Messgröße',
+                label: tx('Messgröße'),
               }}
             />
           </>
@@ -316,8 +317,8 @@ export default function DashboardOverview() {
       {/* Delete confirm */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Eintrag löschen"
-        description={`Messwert „${deleteTarget?.fields.messgroesse ?? '—'}" wirklich löschen?`}
+        title={tx('Eintrag löschen')}
+        description={tx`Messwert „${deleteTarget?.fields.messgroesse ?? '—'}" wirklich löschen?`}
         onConfirm={handleDelete}
         onClose={() => setDeleteTarget(null)}
       />
@@ -330,14 +331,14 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
     <div className="flex flex-col items-center justify-center py-24 gap-4 rounded-[27px] bg-card shadow-lg">
       <IconGauge size={48} className="text-muted-foreground" stroke={1.5} />
       <div className="text-center">
-        <h3 className="font-semibold text-foreground mb-1">Noch keine Betriebsdaten</h3>
+        <h3 className="font-semibold text-foreground mb-1">{tx('Noch keine Betriebsdaten')}</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
-          Erfasse den ersten Messwert für Fermenter, BHKW oder einen anderen Bereich.
+          {tx('Erfasse den ersten Messwert für Fermenter, BHKW oder einen anderen Bereich.')}
         </p>
       </div>
       <Button onClick={onAdd}>
         <IconPlus size={16} className="mr-1.5 shrink-0" />
-        Ersten Messwert erfassen
+        {tx('Ersten Messwert erfassen')}
       </Button>
     </div>
   );
@@ -366,7 +367,7 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
 
   const handleRepair = async () => {
     setRepairing(true);
-    setRepairStatus('Reparatur wird gestartet...');
+    setRepairStatus(tx('Reparatur wird gestartet...'));
     setRepairFailed(false);
 
     const errorContext = JSON.stringify({
@@ -411,7 +412,7 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
             setRepairDone(true);
             setRepairing(false);
           }
-          if (content.startsWith('[ERROR]') && !content.includes('Dashboard-Links')) {
+          if (content.startsWith('[ERROR]') && !content.includes('Dashboard-Links')) { /* i18n-exempt */
             setRepairFailed(true);
           }
         }
@@ -429,11 +430,11 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
           <IconCheck size={22} className="text-green-500" />
         </div>
         <div className="text-center">
-          <h3 className="font-semibold text-foreground mb-1">Dashboard repariert</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">Das Problem wurde behoben. Bitte laden Sie die Seite neu.</p>
+          <h3 className="font-semibold text-foreground mb-1">{tx('Dashboard repariert')}</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">{tx('Das Problem wurde behoben. Bitte laden Sie die Seite neu.')}</p>
         </div>
         <Button size="sm" onClick={() => window.location.reload()}>
-          <IconRefresh size={14} className="mr-1" />Neu laden
+          <IconRefresh size={14} className="mr-1" />{tx('Neu laden')}
         </Button>
       </div>
     );
@@ -445,21 +446,21 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
         <IconAlertCircle size={22} className="text-destructive" />
       </div>
       <div className="text-center">
-        <h3 className="font-semibold text-foreground mb-1">Fehler beim Laden</h3>
+        <h3 className="font-semibold text-foreground mb-1">{tx('Fehler beim Laden')}</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
           {repairing ? repairStatus : error.message}
         </p>
       </div>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={onRetry} disabled={repairing}>Erneut versuchen</Button>
+        <Button variant="outline" size="sm" onClick={onRetry} disabled={repairing}>{tx('Erneut versuchen')}</Button>
         <Button size="sm" onClick={handleRepair} disabled={repairing}>
           {repairing
             ? <span className="inline-block w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-1" />
             : <IconTool size={14} className="mr-1" />}
-          {repairing ? 'Reparatur läuft...' : 'Dashboard reparieren'}
+          {repairing ? tx('Reparatur läuft...') : tx('Dashboard reparieren')}
         </Button>
       </div>
-      {repairFailed && <p className="text-sm text-destructive">Automatische Reparatur fehlgeschlagen. Bitte kontaktieren Sie den Support.</p>}
+      {repairFailed && <p className="text-sm text-destructive">{tx('Automatische Reparatur fehlgeschlagen. Bitte kontaktieren Sie den Support.')}</p>}
     </div>
   );
 }

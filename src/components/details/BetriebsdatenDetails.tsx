@@ -4,6 +4,7 @@ import { extractRecordId } from '@/services/livingAppsService';
 import {
   RecordSection, RecordField, RecordRelation, RecordAttachments,
 } from '@/components/widgets/RecordView';
+import { t, appLabel, fieldLabel } from '@/i18n';
 
 export interface BetriebsdatenDetailsProps {
   /** Der Record — enriched oder roh; alle Felder werden hier gerendert. */
@@ -15,12 +16,12 @@ export function BetriebsdatenDetails({
 }: BetriebsdatenDetailsProps) {
   return (
     <>
-      <RecordSection title="Details" cols={2}>
-        <RecordField label="Zeitstempel" value={record.fields.zeitstempel} format="datetime" />
-        <RecordField label="Messgröße" value={record.fields.messgroesse} format="text" />
-        <RecordField label="Messwert" value={record.fields.wert} format="text" />
-        <RecordField label="Einheit" value={record.fields.einheit} format="text" />
-        <RecordField label="Bemerkung" value={record.fields.bemerkung} format="longtext" className="md:col-span-2" />
+      <RecordSection title={t('details')} cols={2}>
+        <RecordField label={fieldLabel('betriebsdaten', 'zeitstempel')} value={record.fields.zeitstempel} format="datetime" />
+        <RecordField label={fieldLabel('betriebsdaten', 'messgroesse')} value={record.fields.messgroesse} format="text" />
+        <RecordField label={fieldLabel('betriebsdaten', 'wert')} value={record.fields.wert} format="text" />
+        <RecordField label={fieldLabel('betriebsdaten', 'einheit')} value={record.fields.einheit} format="text" />
+        <RecordField label={fieldLabel('betriebsdaten', 'bemerkung')} value={record.fields.bemerkung} format="longtext" className="md:col-span-2" />
       </RecordSection>
 
       <RecordAttachments appId={APP_IDS.BETRIEBSDATEN} recordId={record.record_id} />

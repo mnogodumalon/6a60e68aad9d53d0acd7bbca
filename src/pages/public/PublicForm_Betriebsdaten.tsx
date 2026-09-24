@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/DatePicker';
+import { tx } from '@/i18n';
 
 // Empty PROXY_BASE → relative URLs (dashboard and form-proxy share the domain).
 const PROXY_BASE = '';
@@ -22,7 +23,7 @@ async function submitPublicForm(fields: Record<string, unknown>, captchaToken: s
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || 'Submission failed');
+    throw new Error(err || tx('Submission failed'));
   }
   return res.json();
 }
@@ -81,7 +82,7 @@ export default function PublicFormBetriebsdaten() {
     e.preventDefault();
     const token = readCaptchaToken();
     if (!token) {
-      setError('Bitte warte auf die Spam-Prüfung und versuche es erneut.');
+      setError(tx('Bitte warte auf die Spam-Prüfung und versuche es erneut.'));
       return;
     }
     setSubmitting(true);
@@ -90,7 +91,7 @@ export default function PublicFormBetriebsdaten() {
       await submitPublicForm(cleanFields(fields), token);
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.');
+      setError(err.message || tx('Etwas ist schiefgelaufen. Bitte versuche es erneut.'));
     } finally {
       setSubmitting(false);
     }
@@ -105,10 +106,10 @@ export default function PublicFormBetriebsdaten() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold">Vielen Dank!</h2>
-          <p className="text-muted-foreground">Deine Eingabe wurde erfolgreich übermittelt.</p>
+          <h2 className="text-xl font-bold">{tx('Vielen Dank!')}</h2>
+          <p className="text-muted-foreground">{tx('Deine Eingabe wurde erfolgreich übermittelt.')}</p>
           <Button variant="outline" className="mt-4" onClick={() => { setSubmitted(false); setFields({}); }}>
-            Weitere Eingabe
+            {tx('Weitere Eingabe')}
           </Button>
         </div>
       </div>
@@ -119,12 +120,12 @@ export default function PublicFormBetriebsdaten() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Betriebsdaten — Formular</h1>
+          <h1 className="text-2xl font-bold text-foreground">{tx('Betriebsdaten — Formular')}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="zeitstempel">Zeitstempel *</Label>
+            <Label htmlFor="zeitstempel">{tx('Zeitstempel *')}</Label>
             <DatePicker
               id="zeitstempel"
               placeholder=""
@@ -135,7 +136,7 @@ export default function PublicFormBetriebsdaten() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="messgroesse">Messgröße *</Label>
+            <Label htmlFor="messgroesse">{tx('Messgröße *')}</Label>
             <Input
               id="messgroesse"
               placeholder=""
@@ -145,7 +146,7 @@ export default function PublicFormBetriebsdaten() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="wert">Messwert *</Label>
+            <Label htmlFor="wert">{tx('Messwert *')}</Label>
             <Input
               id="wert"
               type="number"
@@ -157,7 +158,7 @@ export default function PublicFormBetriebsdaten() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="einheit">Einheit</Label>
+            <Label htmlFor="einheit">{tx('Einheit')}</Label>
             <Input
               id="einheit"
               placeholder=""
@@ -166,7 +167,7 @@ export default function PublicFormBetriebsdaten() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bemerkung">Bemerkung</Label>
+            <Label htmlFor="bemerkung">{tx('Bemerkung')}</Label>
             <Textarea
               id="bemerkung"
               placeholder=""
@@ -190,12 +191,12 @@ export default function PublicFormBetriebsdaten() {
           )}
 
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? 'Wird gesendet...' : 'Absenden'}
+            {submitting ? tx('Wird gesendet...') : tx('Absenden')}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Powered by Klar
+          {tx('Powered by Klar')}
         </p>
       </div>
     </div>

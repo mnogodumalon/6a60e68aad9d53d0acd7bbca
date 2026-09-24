@@ -26,6 +26,16 @@ export interface PublicPageEndpoint {
   scope_description?: string;
 }
 
+/** A page reached with `?<name>=<record_id>`. Its bare URL is a dead end, so
+ *  the management UI offers one link PER RECORD instead (see getShareLinks). */
+export interface PublicPageLinkParam {
+  name: string;
+  entity: string;
+  app_id: string;
+  label_field: string;
+  secondary_field?: string | null;
+}
+
 export interface PublicPageSummary {
   slug: string;
   type: PageType;
@@ -38,6 +48,14 @@ export interface PublicPageSummary {
   share_url: string;
   fields: PublicPageField[];
   endpoints?: PublicPageEndpoint[];
+  link_param?: PublicPageLinkParam | null;
+}
+
+export interface ShareLink {
+  record_id: string;
+  label: string;
+  secondary: string;
+  url: string;
 }
 
 async function readError(res: Response): Promise<string> {
@@ -99,6 +117,20 @@ export interface FieldCatalog {
   editable: boolean;
   available: FieldCatalogEntry[];
   selected: string[];
+}
+
+/** One share link per record, for a page that needs a query parameter.
+ *  Resolved server-side against live records — the dashboard would otherwise
+ *  have to know which entity feeds which page. */
+export async function getShareLinks(
+  slug: string,
+): Promise<{ param: string | null; entity?: string; links: ShareLink[] }> {
+  const res = await fetch(
+    `${BASE}/${encodeURIComponent(APPGROUP_ID)}/${encodeURIComponent(slug)}/links`,
+    { credentials: 'include', headers: { Accept: 'application/json' } },
+  );
+  if (!res.ok) throw new Error(await readError(res));
+  return res.json();
 }
 
 export async function getFields(slug: string): Promise<FieldCatalog> {
