@@ -50,7 +50,7 @@ There is NO `@/config/appIds`, no `@/config/lookupOptions` and no
 `@/lib/urlUtils` — APP_IDS and LOOKUP_OPTIONS come from `@/types/app`,
 createRecordUrl from the service. Note the lowercase `l` in the service path.
 
-- Betriebsdaten (betriebsdaten): zeitstempel![date/datetimeminute], messgroesse!^[string/text], wert![number] "Messwert", einheit^[string/text], bemerkung[string/textarea], sekunde[number]
+- Betriebsdaten (betriebsdaten): zeitstempel![date/datetimeminute], messgroesse!^[string/text], wert![number] "Messwert", einheit^[string/text], bemerkung[string/textarea], sekunde^[number]
   ≡ 168541 records at build time
   · zeitstempel: A specific moment in time consisting of year, month, day, hour and minute (or `null`/`None`) The field value will be a string in the format `<YYYY>-<MM>-<DD>…
   ⚙ getBetriebsdaten() · getBetriebsdatenEntry(id) · createBetriebsdatenEntry(fields) · updateBetriebsdatenEntry(id, fields) · deleteBetriebsdatenEntry(id) · queryBetriebsdaten({ filter, orderby, limit, offset, fields }) · countBetriebsdaten(filter?)
