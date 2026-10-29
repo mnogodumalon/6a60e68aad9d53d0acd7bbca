@@ -45,7 +45,7 @@
           "fulltype": "number",
           "description": "A decimal number value (or `null`/`None`).",
           "required": true,
-          "in_list": false,
+          "in_list": true,
           "in_mobile_list": true,
           "in_text": false,
           "in_structured_search": null,

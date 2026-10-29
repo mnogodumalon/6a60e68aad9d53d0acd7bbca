@@ -1,14 +1,6 @@
 {
   "version": 1,
-  "changes": [
-    {
-      "kind": "entity_added",
-      "entity": "auswertung",
-      "name": "Auswertung"
-    }
-  ],
-  "counts": {
-    "entity_added": 1
-  },
-  "harmless_only": false
+  "changes": [],
+  "counts": {},
+  "harmless_only": true
 }
