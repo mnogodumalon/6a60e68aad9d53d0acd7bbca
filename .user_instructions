@@ -27,3 +27,11 @@ nenne den zeitstempel vom namen her wieder in nur zeitstempel um
 füge direkt nach dem zeitstempel das feld Sekunde hinzu
 
 spalte sekunde soll von der abfolge her direkt nach spalte zeitstempel kommen und nicht ganz hinten
+
+füge bei datenverwaltung neben betriebsdaten eine weitere datenbank "Auswerung" ein
+
+mit denselben aufabu wie betriebsdaten, also auch zeitstempel sekunde, messgrösse ...
+
+entferne mittelwert minimalwert und ergebnis und bewertung
+
+entferne maximalwert, zeitraum von zeitraum bis und bezeichnung

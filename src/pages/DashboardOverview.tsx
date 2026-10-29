@@ -8,7 +8,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { IconAlertCircle, IconTool, IconRefresh, IconCheck, IconPlus, IconPencil, IconTrash, IconGauge, IconFlame } from '@tabler/icons-react';
+import { IconAlertCircle, IconTool, IconRefresh, IconCheck, IconPlus, IconPencil, IconTrash, IconGauge, IconFlame, IconChartBar } from '@tabler/icons-react';
 import { StatStrip, StatStripItem } from '@/components/StatCard';
 import { DashboardGrid } from '@/components/DashboardGrid';
 import { WorkList } from '@/components/WorkList';
@@ -42,6 +42,7 @@ const REPAIR_ENDPOINT = '/claude/build/repair';
 export default function DashboardOverview() {
   const {
     betriebsdaten, setBetriebsdaten,
+    auswertung,
     loading, error, fetchAll,
   } = useDashboardData();
 
@@ -200,6 +201,12 @@ export default function DashboardOverview() {
               value={todayEntries.length}
               icon={<IconFlame size={16} className="shrink-0" />}
               tone={todayEntries.length > 0 ? 'success' : 'default'}
+            />
+            <StatStripItem
+              title={tx('Auswertung')}
+              value={auswertung.length}
+              icon={<IconChartBar size={16} className="shrink-0" />}
+              tone="default"
             />
             {Object.entries(bereichCounts).slice(0, 6).map(([key, count]) => (
               <StatStripItem

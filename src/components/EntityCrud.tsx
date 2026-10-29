@@ -42,9 +42,10 @@
  * Overlay content per entity (the host renders these — you never compose
  * Details blocks yourself):
  *   betriebsdaten: zeitstempel, messgroesse, wert, einheit, bemerkung, sekunde
+ *   auswertung: zeitstempel, sekunde, messgroesse, wert, einheit, bemerkung
  */
 import { useState, type ReactNode } from 'react';
-import type { Betriebsdaten } from '@/types/app';
+import type { Betriebsdaten, Auswertung } from '@/types/app';
 import { LivingAppsService } from '@/services/livingAppsService';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import {
@@ -53,6 +54,8 @@ import {
 } from '@/components/widgets/RecordView';
 import { BetriebsdatenDialog, type BetriebsdatenDialogDefaults } from '@/components/dialogs/BetriebsdatenDialog';
 import { BetriebsdatenDetails } from '@/components/details/BetriebsdatenDetails';
+import { AuswertungDialog, type AuswertungDialogDefaults } from '@/components/dialogs/AuswertungDialog';
+import { AuswertungDetails } from '@/components/details/AuswertungDetails';
 import { AI_PHOTO_SCAN, AI_PHOTO_LOCATION } from '@/config/ai-features';
 import { t, appLabel } from '@/i18n';
 import { undoToast } from '@/lib/polish';
@@ -64,7 +67,8 @@ import { formatDate } from '@/lib/formatters';
 // flows: Enriched* where enrichment exists, the raw record type otherwise.
 // The host resolves enrichment itself; pages pass raw records everywhere.
 export type OverlayItem =
-  | { type: 'betriebsdaten'; record: Betriebsdaten };
+  | { type: 'betriebsdaten'; record: Betriebsdaten }
+  | { type: 'auswertung'; record: Auswertung };
 
 /** The useDashboardData() return — pass it in, never re-fetch inside. */
 export type EntityCrudData = ReturnType<typeof useDashboardData>;
@@ -95,10 +99,11 @@ export interface EntityCrud {
   /** Render ONCE at the end of the page JSX — all dialogs + the overlay host. */
   surfaces: ReactNode;
   betriebsdaten: EntityCrudApi<Betriebsdaten, BetriebsdatenDialogDefaults>;
+  auswertung: EntityCrudApi<Auswertung, AuswertungDialogDefaults>;
   /** The display-ready array per entity: Enriched* where an enrich function
    *  exists, the raw array otherwise. One key per entity so no page has to
    *  know which is which. Reuse these; never re-enrich in the page. */
-  enriched: { betriebsdaten: Betriebsdaten[] };
+  enriched: { betriebsdaten: Betriebsdaten[]; auswertung: Auswertung[] };
 }
 
 export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions): EntityCrud {
@@ -107,6 +112,7 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
   const perms = usePermissions();
   const refuse = () => { toast.error(t('perm_denied_title'), { description: t('perm_denied_desc') }); };
   const [betriebsdatenDialog, setBetriebsdatenDialog] = useState<{ defaults?: BetriebsdatenDialogDefaults; editing?: Betriebsdaten } | null>(null);
+  const [auswertungDialog, setAuswertungDialog] = useState<{ defaults?: AuswertungDialogDefaults; editing?: Auswertung } | null>(null);
 
   function detailBetriebsdaten(record: Betriebsdaten, push = false) {
     const item: OverlayItem = { type: 'betriebsdaten', record };
@@ -135,6 +141,33 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
     }
   }
 
+  function detailAuswertung(record: Auswertung, push = false) {
+    const item: OverlayItem = { type: 'auswertung', record };
+    if (push) overlay.push(item); else overlay.replace(item);
+  }
+
+  async function submitAuswertung(fields: Auswertung['fields']) {
+    const editing = auswertungDialog?.editing;
+    if (editing) {
+      const prev = editing;
+      data.setAuswertung(list => list.map(r => (r.record_id === editing.record_id ? { ...r, fields } : r)));
+      try {
+        await LivingAppsService.updateAuswertungEntry(editing.record_id, fields);
+      } catch (err) {
+        data.fetchAll();
+        throw err;
+      }
+      undoToast(`${appLabel('auswertung')} — ${t('crud_updated')}`, async () => {
+        data.setAuswertung(list => list.map(r => (r.record_id === prev.record_id ? prev : r)));
+        try { await LivingAppsService.updateAuswertungEntry(prev.record_id, prev.fields); } catch { data.fetchAll(); }
+      });
+    } else {
+      await LivingAppsService.createAuswertungEntry(fields);
+      undoToast(`${appLabel('auswertung')} — ${t('crud_created')}`);
+      data.fetchAll();
+    }
+  }
+
   const surfaces = (
     <>
       <BetriebsdatenDialog
@@ -145,6 +178,15 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
         recordId={betriebsdatenDialog?.editing?.record_id}
         enablePhotoScan={AI_PHOTO_SCAN['Betriebsdaten']}
         enablePhotoLocation={AI_PHOTO_LOCATION['Betriebsdaten']}
+      />
+      <AuswertungDialog
+        open={auswertungDialog !== null}
+        onClose={() => setAuswertungDialog(null)}
+        onSubmit={submitAuswertung}
+        defaultValues={auswertungDialog?.defaults}
+        recordId={auswertungDialog?.editing?.record_id}
+        enablePhotoScan={AI_PHOTO_SCAN['Auswertung']}
+        enablePhotoLocation={AI_PHOTO_LOCATION['Auswertung']}
       />
       <RecordOverlayHost
         overlay={overlay}
@@ -162,15 +204,27 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
               </>
             );
           }
+          if (top.type === 'auswertung') {
+            return (
+              <>
+                <RecordHeader title={top.record.fields.messgroesse ?? appLabel('auswertung')} subtitle={top.record.fields.zeitstempel ? formatDate(top.record.fields.zeitstempel) : undefined} />
+                <AuswertungDetails
+                  record={top.record}
+                />
+              </>
+            );
+          }
           return null;
         }}
         canEdit={(top) => {
           if (top.type === 'betriebsdaten') return perms.canWrite('betriebsdaten');
+          if (top.type === 'auswertung') return perms.canWrite('auswertung');
           return true;
         }}
         onEdit={(top) => {
           overlay.close();
           if (top.type === 'betriebsdaten') setBetriebsdatenDialog({ editing: top.record, defaults: top.record.fields });
+          if (top.type === 'auswertung') setAuswertungDialog({ editing: top.record, defaults: top.record.fields });
         }}
       />
     </>
@@ -185,6 +239,12 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
       openDetail: (record: Betriebsdaten) => detailBetriebsdaten(record, false),
       canWrite: perms.canWrite('betriebsdaten'),
     },
-    enriched: { betriebsdaten: data.betriebsdaten },
+    auswertung: {
+      openCreate: (defaults?: AuswertungDialogDefaults) => (perms.canWrite('auswertung') ? setAuswertungDialog({ defaults }) : refuse()),
+      openEdit: (record: Auswertung) => (perms.canWrite('auswertung') ? setAuswertungDialog({ editing: record, defaults: record.fields }) : refuse()),
+      openDetail: (record: Auswertung) => detailAuswertung(record, false),
+      canWrite: perms.canWrite('auswertung'),
+    },
+    enriched: { betriebsdaten: data.betriebsdaten, auswertung: data.auswertung },
   };
 }

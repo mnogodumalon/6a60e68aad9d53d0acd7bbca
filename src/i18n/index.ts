@@ -1610,6 +1610,19 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
           "sekunde": "Sekunde"
         },
         "lookups": {}
+      },
+      "auswertung": {
+        "name": "Auswertung",
+        "app_id": "6ae3775e3d50fedbf85e7966",
+        "fields": {
+          "zeitstempel": "Zeitstempel",
+          "sekunde": "Sekunde",
+          "messgroesse": "Messgröße",
+          "wert": "Messwert",
+          "einheit": "Einheit",
+          "bemerkung": "Bemerkung"
+        },
+        "lookups": {}
       }
     }
   },
@@ -1626,6 +1639,19 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
           "einheit": "Unit",
           "bemerkung": "Remark",
           "sekunde": "Second"
+        },
+        "lookups": {}
+      },
+      "auswertung": {
+        "name": "Analysis",
+        "app_id": "6ae3775e3d50fedbf85e7966",
+        "fields": {
+          "zeitstempel": "Timestamp",
+          "sekunde": "Second",
+          "messgroesse": "Measured Variable",
+          "wert": "Measured Value",
+          "einheit": "Unit",
+          "bemerkung": "Remark"
         },
         "lookups": {}
       }

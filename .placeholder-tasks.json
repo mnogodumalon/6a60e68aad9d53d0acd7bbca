@@ -81,6 +81,84 @@
           }
         ]
       }
+    },
+    {
+      "file": "src/components/dialogs/AuswertungDialog.tsx",
+      "entity": "Auswertung",
+      "entity_context": "BGA Betriebsdatenerfassung",
+      "fields": [
+        {
+          "key": "zeitstempel",
+          "label": "Zeitstempel",
+          "type": "date/datetimeminute"
+        },
+        {
+          "key": "sekunde",
+          "label": "Sekunde",
+          "type": "number"
+        },
+        {
+          "key": "messgroesse",
+          "label": "Messgröße",
+          "type": "string/text"
+        },
+        {
+          "key": "wert",
+          "label": "Messwert",
+          "type": "number"
+        },
+        {
+          "key": "einheit",
+          "label": "Einheit",
+          "type": "string/text"
+        },
+        {
+          "key": "bemerkung",
+          "label": "Bemerkung",
+          "type": "string/textarea"
+        }
+      ],
+      "formEnhancements": {
+        "configPath": "src/config/form-enhancements/Auswertung.ts",
+        "fields": [
+          {
+            "key": "zeitstempel",
+            "label": "Zeitstempel",
+            "type": "date/datetimeminute",
+            "required": true
+          },
+          {
+            "key": "sekunde",
+            "label": "Sekunde",
+            "type": "number",
+            "required": false
+          },
+          {
+            "key": "messgroesse",
+            "label": "Messgröße",
+            "type": "string/text",
+            "required": false
+          },
+          {
+            "key": "wert",
+            "label": "Messwert",
+            "type": "number",
+            "required": false
+          },
+          {
+            "key": "einheit",
+            "label": "Einheit",
+            "type": "string/text",
+            "required": false
+          },
+          {
+            "key": "bemerkung",
+            "label": "Bemerkung",
+            "type": "string/textarea",
+            "required": false
+          }
+        ]
+      }
     }
   ]
 }

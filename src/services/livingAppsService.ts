@@ -2,7 +2,7 @@
 import { APP_IDS, LOOKUP_OPTIONS, FIELD_TYPES } from '@/types/app';
 import { ensureUploadableImage } from '@/lib/ai';
 import { REST_URL } from '@/lib/origin';
-import type { Betriebsdaten, CreateBetriebsdaten } from '@/types/app';
+import type { Betriebsdaten, Auswertung, CreateBetriebsdaten, CreateAuswertung } from '@/types/app';
 
 // Base Configuration — the host is a RUNTIME fact (lib/origin.ts):
 // a bundle copied to another LA instance must talk to THAT instance.
@@ -471,6 +471,44 @@ export class LivingAppsService {
   }
   static async deleteBetriebsdatenEntry(id: string) {
     return callApi('DELETE', `/apps/${APP_IDS.BETRIEBSDATEN}/records/${id}`);
+  }
+
+  // --- AUSWERTUNG ---
+  static async getAuswertung(): Promise<Auswertung[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/records`);
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Auswertung[];
+    return hydrateRecords(records, 'auswertung');
+  }
+  static async queryAuswertung(q: RecordQuery = {}): Promise<Auswertung[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/records${recordQueryString(q)}`, undefined, { signal: q.signal });
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Auswertung[];
+    return hydrateRecords(records, 'auswertung');
+  }
+  static async countAuswertung(filter?: string, signal?: AbortSignal): Promise<number> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/aggregate_records${recordQueryString({ filter })}${filter ? '&' : '?'}value=count()`, undefined, { signal, silent: true });
+    return parseAggregateCount(data);
+  }
+  static async getAuswertungEntry(id: string): Promise<Auswertung | undefined> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/records/${id}`);
+    const record = { record_id: data.id, ...data, createdat: data.created_at ?? '', updatedat: data.updated_at ?? null } as Auswertung;
+    return hydrateRecords([record], 'auswertung')[0];
+  }
+  static async createAuswertungEntry(fields: CreateAuswertung): Promise<MutationResult> {
+    const data = await callApi('POST', `/apps/${APP_IDS.AUSWERTUNG}/records`, { fields: cleanFieldsForApi(fields as any, 'auswertung') });
+    return { ...data, record_id: data.id };
+  }
+  static async updateAuswertungEntry(id: string, fields: Partial<CreateAuswertung>): Promise<MutationResult> {
+    const data = await callApi('PATCH', `/apps/${APP_IDS.AUSWERTUNG}/records/${id}`, { fields: cleanFieldsForApi(fields as any, 'auswertung') });
+    return { ...data, record_id: data.id };
+  }
+  static async deleteAuswertungEntry(id: string) {
+    return callApi('DELETE', `/apps/${APP_IDS.AUSWERTUNG}/records/${id}`);
   }
 
 }

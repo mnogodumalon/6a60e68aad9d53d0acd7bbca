@@ -13,6 +13,7 @@
  *
  * Facts from the metadata — candidates, NOT decisions:
  *   - betriebsdaten: no date pair, no references
+ *   - auswertung: no date pair, no references
  */
 import type { EntityKey } from '@/lib/journey/rules';
 

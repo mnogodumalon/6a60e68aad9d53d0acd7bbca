@@ -52,8 +52,29 @@ export interface Betriebsdaten {
   };
 }
 
+export interface Auswertung {
+  record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
+  createdat: string;
+  updatedat: string | null;
+  fields: {
+    zeitstempel?: string; // Format: YYYY-MM-DD oder ISO String
+    sekunde?: number;
+    messgroesse?: string;
+    wert?: number;
+    einheit?: string;
+    bemerkung?: string;
+  };
+}
+
 export const APP_IDS = {
   BETRIEBSDATEN: '6a60e68007044c0b94964877',
+  AUSWERTUNG: '6ae3775e3d50fedbf85e7966',
 } as const;
 
 
@@ -68,6 +89,14 @@ export const FIELD_TYPES: Record<string, Record<string, string>> = {
     'bemerkung': 'string/textarea',
     'sekunde': 'number',
   },
+  'auswertung': {
+    'zeitstempel': 'date/datetimeminute',
+    'sekunde': 'number',
+    'messgroesse': 'string/text',
+    'wert': 'number',
+    'einheit': 'string/text',
+    'bemerkung': 'string/textarea',
+  },
 };
 
 export const HUB_TOPOLOGY: Record<string, { field: string; entity: string }[]> = {
@@ -81,6 +110,7 @@ type StripLookup<T> = {
 
 // Helper Types for creating new records (lookup fields as plain strings for API)
 export type CreateBetriebsdaten = StripLookup<Betriebsdaten['fields']>;
+export type CreateAuswertung = StripLookup<Auswertung['fields']>;
 ```
 
 ## src/services/livingAppsService.ts
@@ -89,7 +119,7 @@ export type CreateBetriebsdaten = StripLookup<Betriebsdaten['fields']>;
 import { APP_IDS, LOOKUP_OPTIONS, FIELD_TYPES } from '@/types/app';
 import { ensureUploadableImage } from '@/lib/ai';
 import { REST_URL } from '@/lib/origin';
-import type { Betriebsdaten, CreateBetriebsdaten } from '@/types/app';
+import type { Betriebsdaten, Auswertung, CreateBetriebsdaten, CreateAuswertung } from '@/types/app';
 
 // Base Configuration — the host is a RUNTIME fact (lib/origin.ts):
 // a bundle copied to another LA instance must talk to THAT instance.
@@ -560,6 +590,44 @@ export class LivingAppsService {
     return callApi('DELETE', `/apps/${APP_IDS.BETRIEBSDATEN}/records/${id}`);
   }
 
+  // --- AUSWERTUNG ---
+  static async getAuswertung(): Promise<Auswertung[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/records`);
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Auswertung[];
+    return hydrateRecords(records, 'auswertung');
+  }
+  static async queryAuswertung(q: RecordQuery = {}): Promise<Auswertung[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/records${recordQueryString(q)}`, undefined, { signal: q.signal });
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Auswertung[];
+    return hydrateRecords(records, 'auswertung');
+  }
+  static async countAuswertung(filter?: string, signal?: AbortSignal): Promise<number> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/aggregate_records${recordQueryString({ filter })}${filter ? '&' : '?'}value=count()`, undefined, { signal, silent: true });
+    return parseAggregateCount(data);
+  }
+  static async getAuswertungEntry(id: string): Promise<Auswertung | undefined> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG}/records/${id}`);
+    const record = { record_id: data.id, ...data, createdat: data.created_at ?? '', updatedat: data.updated_at ?? null } as Auswertung;
+    return hydrateRecords([record], 'auswertung')[0];
+  }
+  static async createAuswertungEntry(fields: CreateAuswertung): Promise<MutationResult> {
+    const data = await callApi('POST', `/apps/${APP_IDS.AUSWERTUNG}/records`, { fields: cleanFieldsForApi(fields as any, 'auswertung') });
+    return { ...data, record_id: data.id };
+  }
+  static async updateAuswertungEntry(id: string, fields: Partial<CreateAuswertung>): Promise<MutationResult> {
+    const data = await callApi('PATCH', `/apps/${APP_IDS.AUSWERTUNG}/records/${id}`, { fields: cleanFieldsForApi(fields as any, 'auswertung') });
+    return { ...data, record_id: data.id };
+  }
+  static async deleteAuswertungEntry(id: string) {
+    return callApi('DELETE', `/apps/${APP_IDS.AUSWERTUNG}/records/${id}`);
+  }
+
 }
 ```
 
@@ -909,7 +977,7 @@ export function Layout() {
 ## src/hooks/useDashboardData.ts
 ```
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Betriebsdaten } from '@/types/app';
+import type { Betriebsdaten, Auswertung } from '@/types/app';
 import { LivingAppsService } from '@/services/livingAppsService';
 import { t } from '@/i18n';
 
@@ -924,7 +992,7 @@ import { t } from '@/i18n';
  *  There is no other mechanism (no `__optimistic`, no `mutate`).
  */
 /** Entities this hook can load — the same keys the journey layer uses. */
-export type DashboardEntity = 'betriebsdaten';
+export type DashboardEntity = 'betriebsdaten' | 'auswertung';
 
 export interface DashboardDataOptions {
   /** Entities this page does NOT need (picked through useRecordSearch instead).
@@ -939,6 +1007,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
   // on every render and would restart the fetch forever.
   const omitKey = (options.omit ?? []).slice().sort().join('|');
   const [betriebsdaten, setBetriebsdaten] = useState<Betriebsdaten[]>([]);
+  const [auswertung, setAuswertung] = useState<Auswertung[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   /** Lists the signed-in user may not read (403 on the platform). They load as
@@ -959,6 +1028,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
       return null;
     };
     { const rows = pick<Betriebsdaten>(0, 'betriebsdaten'); if (rows) setBetriebsdaten(rows); }
+    { const rows = pick<Auswertung>(1, 'auswertung'); if (rows) setAuswertung(rows); }
     setForbidden(prev => (prev.join('|') === denied.join('|') ? prev : denied));
     return failure;
   }, []);
@@ -969,6 +1039,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
     try {
       const failure = settle(await Promise.allSettled([
         omit.has('betriebsdaten') ? Promise.resolve([] as Betriebsdaten[]) : LivingAppsService.getBetriebsdaten(),
+        omit.has('auswertung') ? Promise.resolve([] as Auswertung[]) : LivingAppsService.getAuswertung(),
       ]));
       if (failure) throw failure;
     } catch (err) {
@@ -989,6 +1060,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
         // replaces what loaded or was refused
         settle(await Promise.allSettled([
           omit.has('betriebsdaten') ? Promise.resolve([] as Betriebsdaten[]) : LivingAppsService.getBetriebsdaten(),
+          omit.has('auswertung') ? Promise.resolve([] as Auswertung[]) : LivingAppsService.getAuswertung(),
         ]));
       } catch {
         // silently ignore — stale data is better than no data
@@ -1003,7 +1075,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
     return () => window.removeEventListener('assistant:data-changed', handleRefresh);
   }, [omitKey, settle]);
 
-  return { betriebsdaten, setBetriebsdaten, loading, error, fetchAll, forbidden };
+  return { betriebsdaten, setBetriebsdaten, auswertung, setAuswertung, loading, error, fetchAll, forbidden };
 }
 
 /** The hook's return — the `data` prop of DashboardOverview in the Ready-Wrapper form. */
