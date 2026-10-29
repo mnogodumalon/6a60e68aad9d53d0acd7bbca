@@ -56,6 +56,8 @@ import { BetriebsdatenDetails } from '@/components/details/BetriebsdatenDetails'
 import { AI_PHOTO_SCAN, AI_PHOTO_LOCATION } from '@/config/ai-features';
 import { t, appLabel } from '@/i18n';
 import { undoToast } from '@/lib/polish';
+import { usePermissions } from '@/lib/permissions';
+import { toast } from 'sonner';
 import { formatDate } from '@/lib/formatters';
 
 // The overlay union — one branch per entity, `record` typed the way the data
@@ -81,6 +83,10 @@ export interface EntityCrudApi<TRecord, TDefaults> {
   openEdit: (record: TRecord) => void;
   /** Open the record overlay (raw record is fine — enrichment resolved inside). */
   openDetail: (record: TRecord) => void;
+  /** May the signed-in user create/change records of this list? (the
+   *  platform's rights — show a „+ Neu“ only when true; openCreate/openEdit
+   *  refuse with a notice otherwise). */
+  canWrite: boolean;
 }
 
 export interface EntityCrud {
@@ -97,6 +103,9 @@ export interface EntityCrud {
 
 export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions): EntityCrud {
   const overlay = useRecordOverlayStack<OverlayItem>();
+  // the platform's rights of the signed-in user (lib/permissions.ts) — unknown = allowed
+  const perms = usePermissions();
+  const refuse = () => { toast.error(t('perm_denied_title'), { description: t('perm_denied_desc') }); };
   const [betriebsdatenDialog, setBetriebsdatenDialog] = useState<{ defaults?: BetriebsdatenDialogDefaults; editing?: Betriebsdaten } | null>(null);
 
   function detailBetriebsdaten(record: Betriebsdaten, push = false) {
@@ -155,6 +164,10 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
           }
           return null;
         }}
+        canEdit={(top) => {
+          if (top.type === 'betriebsdaten') return perms.canWrite('betriebsdaten');
+          return true;
+        }}
         onEdit={(top) => {
           overlay.close();
           if (top.type === 'betriebsdaten') setBetriebsdatenDialog({ editing: top.record, defaults: top.record.fields });
@@ -167,9 +180,10 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
     overlay,
     surfaces,
     betriebsdaten: {
-      openCreate: (defaults?: BetriebsdatenDialogDefaults) => setBetriebsdatenDialog({ defaults }),
-      openEdit: (record: Betriebsdaten) => setBetriebsdatenDialog({ editing: record, defaults: record.fields }),
+      openCreate: (defaults?: BetriebsdatenDialogDefaults) => (perms.canWrite('betriebsdaten') ? setBetriebsdatenDialog({ defaults }) : refuse()),
+      openEdit: (record: Betriebsdaten) => (perms.canWrite('betriebsdaten') ? setBetriebsdatenDialog({ editing: record, defaults: record.fields }) : refuse()),
       openDetail: (record: Betriebsdaten) => detailBetriebsdaten(record, false),
+      canWrite: perms.canWrite('betriebsdaten'),
     },
     enriched: { betriebsdaten: data.betriebsdaten },
   };

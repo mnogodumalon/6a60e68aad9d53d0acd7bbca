@@ -9,6 +9,7 @@ import { entityLabel, type EntityKey } from '@/lib/journey/rules';
 import type { JourneyPort, JourneyRecord } from '@/lib/journey/port';
 import type { FormValues } from '@/lib/journey/useStepForm';
 import { t, tp } from '@/i18n';
+import { useWizard } from '@/components/blocks/IntentWizardShell';
 
 /**
  * EntitySelectStep — "pick a record" as people expect it from a customer
@@ -30,6 +31,9 @@ import { t, tp } from '@/i18n';
  *
  * Two pick shapes, told apart by the props:
  *   single  — `onSelect(id)` + `selectedId`: the usual "which guest" step.
+ *             Inside IntentWizardShell the pick moves the wizard on by itself
+ *             when the step has no StepNav — the step IS the pick. Put a
+ *             StepNav next to it only when the step holds more than the pick.
  *   multi   — `onToggle(id)` + `selectedIds`: a multipleapplookup ("which
  *             employees"). Spread `{...f.records('mitarbeiter', x.labelOf)}`
  *             from useStepForm: the pick then lives in the form, `required`
@@ -120,6 +124,9 @@ export interface EntitySelectStepBaseProps {
   loading?: boolean;
   /** Load/search error to show (from useRecordSearch). */
   error?: string | null;
+  /** The rule that narrows this pick, as a sentence ("Nur wo Status ist Aktiv"),
+   *  with the link to the page that changes it — from the flow hook's `.select`. */
+  hint?: { text: string; href?: string } | null;
 }
 
 export type EntitySelectStepProps = EntitySelectStepBaseProps & PickProps;
@@ -241,6 +248,7 @@ export function EntitySelectStep({
   onSearch,
   loading = false,
   error = null,
+  hint = null,
   avatar = 'initials',
 }: EntitySelectStepProps) {
   const [search, setSearch] = useState('');
@@ -253,14 +261,24 @@ export function EntitySelectStep({
   const [cursorVisible, setCursorVisible] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const listId = useId();
+  const wizard = useWizard();
 
   // One pick shape or the other — the union above makes mixing them a type error.
   const multi = Array.isArray(selectedIds);
   const isSelected = (itemId: string): boolean =>
     multi ? (selectedIds as string[]).includes(itemId) : selectedId != null && itemId === selectedId;
+  // A single pick IS the step's answer: inside a wizard whose current step has
+  // no StepNav it moves on by itself — the `setStep(2)` every page used to
+  // write into onSelect, now owned here so a page that spreads `flow.pick()`
+  // cannot lose it (five live flows dead-ended on step 1, inclou 24.09.2026).
+  // With a StepNav on the step (pick plus other fields) the button decides.
   const pick = (itemId: string): void => {
-    if (multi) onToggle?.(itemId);
-    else onSelect?.(itemId);
+    if (multi) {
+      onToggle?.(itemId);
+      return;
+    }
+    onSelect?.(itemId);
+    if (wizard && !wizard.hasNav()) wizard.next();
   };
   // The root carries the form id so validate() can focus and scroll to the
   // step, and aria-invalid so the state is announced, not only coloured.
@@ -375,6 +393,13 @@ export function EntitySelectStep({
   const errorLine = message ? (
     <p role="alert" className="text-xs text-destructive">{message}</p>
   ) : null;
+  // why some records are not on offer — and where the owner changes that
+  const hintLine = hint?.text ? (
+    <p className="text-xs text-muted-foreground" data-journey-hint="">
+      {hint.text}
+      {hint.href && <> · <a href={hint.href} className="text-primary hover:underline">{t('am_change')}</a></>}
+    </p>
+  ) : null;
 
   function footer(shownCount: number) {
     if (shownCount >= total) return null;
@@ -390,6 +415,7 @@ export function EntitySelectStep({
     return (
       <div {...rootProps}>
         {createButton && <div className="flex justify-end">{createButton}</div>}
+        {hintLine}
         {createPanel}
         {errorLine}
         {loading ? loadingBlock : items.length === 0 ? emptyBlock : (
@@ -474,6 +500,7 @@ export function EntitySelectStep({
           {createButton}
         </div>
 
+        {hintLine}
         {createPanel}
         {errorLine}
 
@@ -586,6 +613,7 @@ export function EntitySelectStep({
       {/* the create panel — the layer's InlineCreate, or the page's own
           createDialog (never the generic {Entity}Dialog; check-intents fails
           the build on that import) */}
+      {hintLine}
       {createPanel}
       {errorLine}
 

@@ -5,6 +5,7 @@ import {
   RecordSection, RecordField, RecordRelation, RecordAttachments,
 } from '@/components/widgets/RecordView';
 import { t, appLabel, fieldLabel } from '@/i18n';
+import { usePermissions } from '@/lib/permissions';
 
 export interface BetriebsdatenDetailsProps {
   /** Der Record — enriched oder roh; alle Felder werden hier gerendert. */
@@ -14,6 +15,8 @@ export interface BetriebsdatenDetailsProps {
 export function BetriebsdatenDetails({
   record,
 }: BetriebsdatenDetailsProps) {
+  // attachments are a write to this record — read-only without the platform right
+  const perms = usePermissions();
   return (
     <>
       <RecordSection title={t('details')} cols={2}>
@@ -25,7 +28,7 @@ export function BetriebsdatenDetails({
         <RecordField label={fieldLabel('betriebsdaten', 'sekunde')} value={record.fields.sekunde} format="text" />
       </RecordSection>
 
-      <RecordAttachments appId={APP_IDS.BETRIEBSDATEN} recordId={record.record_id} />
+      <RecordAttachments appId={APP_IDS.BETRIEBSDATEN} recordId={record.record_id} readOnly={!perms.canWrite('betriebsdaten')} />
     </>
   );
 }

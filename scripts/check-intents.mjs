@@ -79,6 +79,19 @@ if (pages.length > 0) {
     const file = pageFile(name);
     const src = readFileSync(file, 'utf8');
 
+    // fieldText is the DISPLAY text („12.10.2026, 11:00“); new Date()/parseISO
+    // read it month-first — salon 05.10.2026 showed Monday 12 Oct as
+    // „Donnerstag, 10.12.2026“. Anything computed or formatted from a date
+    // reads fieldDate (ISO).
+    {
+      const textVars = [...src.matchAll(/(?:const|let)\s+(\w+)\s*=\s*fieldText\(/g)].map(m => m[1]);
+      const direct = /(?:new Date|parseISO)\(\s*fieldText\(/.test(src);
+      const viaVar = textVars.some(v => new RegExp(`(?:new Date|parseISO)\\(\\s*${v}\\b`).test(src));
+      if (direct || viaVar) {
+        errors.push(`${file}: a fieldText(...) value goes into new Date()/parseISO — fieldText is the DISPLAY text ('12.10.2026, 11:00'), which Date reads month-first (12 Oct became 10 Dec, live). Use fieldDate(r, key) — the ISO value — for anything computed or formatted from a date`);
+      }
+    }
+
     // 1. Imported and routed? (not from staging — the band wires later)
     if (!pageOnly && !appSrc.includes(`@/pages/intents/${name}`)) {
       errors.push(`${APP}: no import for '${name}' — add it inside <custom:imports> and route it in <custom:routes>`);
@@ -99,8 +112,25 @@ if (pages.length > 0) {
     //     used (forms+submit, result) but not THAT they are rendered — a flow
     //     that skips the review step or hand-rolls its success screen compiles
     //     fine and ships below the floor. So this is a presence check.
-    if (!/useJourneySubmit\s*\(/.test(src)) {
-      errors.push(`${file}: no useJourneySubmit(...) — every flow writes through the plan runner (import { useJourneySubmit } from '@/lib/journey'; const submit = useJourneySubmit(servicePort, [{ key, entity, form, primary: true }], { draftKey }))`);
+    // A generated flow hook (`use<Pascal>Flow` from @/lib/journey/flows/…) IS the
+    //     plan runner: it owns useStepForm/useRecordSearch/useJourneySubmit, the
+    //     page only composes. With a hook the page must NOT reach for the raw
+    //     plumbing — that is the whole point: a page that only calls flow.submit
+    //     cannot write a field the plan does not know.
+    const hookImport = /import\s*\{[^}]*\buse([A-Z]\w*)Flow\b[^}]*\}\s*from\s*['"]@\/lib\/journey\/flows\/(\w+)['"]/.exec(src);
+    const usesFlowHook = !!hookImport && new RegExp(`\\buse${hookImport[1]}Flow\\s*\\(`).test(src);
+    if (usesFlowHook) {
+      const raw = [];
+      if (/\buseStepForm\s*\(/.test(src)) raw.push('useStepForm');
+      if (/\buseJourneySubmit\s*\(/.test(src)) raw.push('useJourneySubmit');
+      if (/\buseRecordSearch\s*\(/.test(src)) raw.push('useRecordSearch');
+      if (/from\s*['"]@\/services\/journeyPort['"]/.test(src)) raw.push('servicePort');
+      if (raw.length) {
+        errors.push(`${file}: uses the flow hook use${hookImport[1]}Flow AND the raw plumbing (${raw.join(', ')}) — the hook owns the form(s), the record searches and the submit plan; compose with flow.forms.<key>, flow.picks.<field>.select + flow.pick()/flow.pickMany(), flow.validateStep(n), flow.submit; availability or a count through the hook's door: useOccupancy(flow.port, entity, { resource }), useRecordCount(flow.port, …). Remove the raw calls.`);
+      }
+    }
+    if (!/useJourneySubmit\s*\(/.test(src) && !usesFlowHook) {
+      errors.push(`${file}: no useJourneySubmit(...) and no flow hook — every flow writes through the plan runner (with a plan: the generated hook use<Pascal>Flow under @/lib/journey/flows; without: import { useJourneySubmit } from '@/lib/journey'; const submit = useJourneySubmit(servicePort, [{ key, entity, form, primary: true }], { draftKey }))`);
     }
     if (!/<SummaryStep[\s/>]/.test(src)) {
       errors.push(`${file}: no <SummaryStep> — render <SummaryStep forms={[…]} submit={submit} whatHappensNext="…" /> as the review step before the write`);
@@ -167,7 +197,7 @@ if (pages.length > 0) {
     //     stepper: IntentWizardShell + StepNav, the page only owns `step`.
     {
       const ownsSteps = /\bsetStep\s*\(|\[\s*step\s*,\s*setStep\s*\]|useState\(\s*STEP_/.test(src);
-      const onTheLayer = /<SummaryStep\b|useJourneySubmit\(/.test(src);
+      const onTheLayer = /<SummaryStep\b|useJourneySubmit\(|\buse[A-Z]\w*Flow\(/.test(src);
       if (ownsSteps && onTheLayer && !/IntentWizardShell/.test(src)) {
         errors.push(`${file}: a hand-rolled stepper (own step state and buttons) without IntentWizardShell — wrap the steps in <IntentWizardShell steps={STEPS} currentStep={step} onStepChange={setStep} forms={[…]}> and move between them with <StepNav onNext={…} /> (both under @/components/blocks); the shell owns URL step, draft resume, focus and the buttons the render-smoke presses`);
       }
@@ -543,7 +573,15 @@ if (pages.length > 0) {
     //     rare aggregate the layer has no hook for — a warning names the layer's way.
     if (/useDashboardData\(/.test(src)) {
       const line = src.slice(0, src.search(/useDashboardData\(/)).split('\n').length;
-      warnings.push(`${file}:${line}: useDashboardData in a flow — picks are useRecordSearch (never items from an array), availability is useOccupancy(servicePort, entity, { resource }), the picked record is x.recordOf(id); keep the hook only for an aggregate the layer has no answer for`);
+      if (usesFlowHook) {
+        // With a hook there is no aggregate left to excuse it: the hook owns every
+        // pick — including the record an update flow changes (flow.pick('<entity>')).
+        // Live 23.09.2026: a lane fed the target of an update from the dashboard
+        // array because the hook offered no pick; the warning let it through.
+        errors.push(`${file}:${line}: useDashboardData next to the flow hook — the hook owns every pick: {...flow.picks.<field>.select} {...flow.pick('<field>')}, and for the record an update changes {...flow.picks.<entity>.select} {...flow.pick('<entity>')} (prefilled, updated on submit). Remove useDashboardData and the hand-built items`);
+      } else {
+        warnings.push(`${file}:${line}: useDashboardData in a flow — picks are useRecordSearch (never items from an array), availability is useOccupancy(servicePort, entity, { resource }) — with a flow hook useOccupancy(flow.port, …) —, the picked record is x.recordOf(id); keep the hook only for an aggregate the layer has no answer for`);
+      }
     }
 
     // 3z. A write past the port. Two live update flows called
@@ -560,7 +598,10 @@ if (pages.length > 0) {
     //     create path). The layer offers "Neu anlegen" by itself from
     //     {...x.select}; `create={false}` switches that off and is a
     //     deliberate decision — worth a second look, not a build failure.
-    for (const m of src.matchAll(/<EntitySelectStep\b[^>]*?\bcreate=\{\s*false\s*\}/gs)) {
+    //     On a hook page the plan decided (`picks.<k>.select.create`) — a lane
+    //     that writes `create=` there overrides it knowingly; no warning that
+    //     costs a rewrite round (two lanes, 30–45 s each, inclou 24.09.2026).
+    for (const m of usesFlowHook ? [] : src.matchAll(/<EntitySelectStep\b[^>]*?\bcreate=\{\s*false\s*\}/gs)) {
       const line = src.slice(0, m.index).split('\n').length;
       warnings.push(`${file}:${line}: <EntitySelectStep create={false}> — the step dead-ends when the list is empty; keep it off only where creating makes no sense (a fixed catalogue, a day), otherwise drop the prop and let the layer offer "Neu anlegen"`);
     }
@@ -592,6 +633,18 @@ if (pages.length > 0) {
         for (const m of src.matchAll(/<EntitySelectStep\b[\s\S]{0,400}?\bitems=\{\s*(\w+)\b/g)) {
           if (arrays.includes(m[1])) {
             errors.push(`${file}: <EntitySelectStep items={${m[1]}.…}> feeds a pick step from the useDashboardData array '${m[1]}' — the data path is a RUNTIME decision: const x = useRecordSearch(servicePort, '<entity>', { searchFields: [...], toItem }); <EntitySelectStep {...x.select} …/>; and drop the table from the hook: useDashboardData({ omit: ['<entity>'] })`);
+          }
+        }
+      }
+      // The same door, held differently: `const data = useDashboardData(…)` and
+      // `items={projektItems}` built from `data.projekte` (live 23.09.2026 —
+      // the destructuring pattern above never saw it).
+      const dd2 = /(?:const|let|var)\s+(\w+)\s*=\s*useDashboardData\s*\(/.exec(src);
+      if (dd2) {
+        for (const m of src.matchAll(/<EntitySelectStep\b[\s\S]{0,400}?\bitems=\{\s*(\w+)\b/g)) {
+          const def = new RegExp(`(?:const|let|var)\\s+${m[1]}\\s*=([\\s\\S]*?);\\n`).exec(src);
+          if (def && def[1].includes(`${dd2[1]}.`)) {
+            errors.push(`${file}: <EntitySelectStep items={${m[1]}}> is built from ${dd2[1]}.<entity> (useDashboardData) — the data path is a RUNTIME decision: pick through useRecordSearch ({...x.select}) or, with a flow hook, {...flow.picks.<field>.select} {...flow.pick('<field>')}`);
           }
         }
       }

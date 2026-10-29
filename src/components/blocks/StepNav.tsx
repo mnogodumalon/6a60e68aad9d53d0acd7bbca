@@ -50,6 +50,10 @@ export function StepNav({
   className = '',
 }: StepNavProps) {
   const wizard = useWizard();
+  // Tell the shell this step has a Weiter: a single pick on the same step
+  // then leaves moving on to the button instead of doing it itself.
+  const registerNav = wizard?.registerNav;
+  useEffect(() => registerNav?.(), [registerNav]);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   // The reason stays only until the user acts again — a line that survives the

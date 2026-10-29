@@ -5,6 +5,7 @@ import { IntentsNav } from '@/components/IntentsNav';
 import { ActionsSidebar } from '@/components/ActionsSidebar';
 import { Button } from '@/components/ui/button';
 import { VersionCheck } from '@/components/VersionCheck';
+import { PlanNotice } from '@/components/PlanNotice';
 // Sprachwechsel kommt aus der Plattform-Topnav: sie schreibt <html lang>,
 // src/i18n beobachtet das Attribut und LocaleGate remountet den Baum.
 import { t, appgroupLabel } from '@/i18n';
@@ -201,7 +202,10 @@ export function Layout() {
               }}>{t('auth_login_button')}</Button>
             </div>
           ) : (
-            <Outlet />
+            <>
+              {location.pathname === '/' && <PlanNotice />}
+              <Outlet />
+            </>
           )}
         </main>
       </div>

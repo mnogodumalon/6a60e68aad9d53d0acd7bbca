@@ -154,12 +154,13 @@ export function SuccessStep({
         </div>
       </div>
 
+      {/* `@container` like SummaryStep: columns follow the card, not the viewport. */}
       {rows.length > 0 && (
-        <dl className="rounded-2xl border border-border bg-card divide-y divide-border">
+        <dl className="rounded-2xl border border-border bg-card divide-y divide-border @container">
           {rows.map((r, i) => (
-            <div key={`${r.label}-${i}`} className="grid grid-cols-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] gap-x-4 px-5 py-2.5 items-baseline">
+            <div key={`${r.label}-${i}`} className="grid grid-cols-1 @md:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] gap-x-4 px-5 py-2.5 items-baseline">
               <dt className="text-sm text-muted-foreground">{r.label}</dt>
-              <dd className="text-sm font-medium break-words">{r.value}</dd>
+              <dd className="text-sm font-medium break-words min-w-0">{r.value}</dd>
             </div>
           ))}
         </dl>

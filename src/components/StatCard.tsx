@@ -219,14 +219,10 @@ export function StatCardRow({ children, layout = 'row', className }: { children:
       setEdge(prev => (prev.left === left && prev.right === right ? prev : { left, right }));
     };
     measure();
-    let raf = 0;
-    const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(measure);
-    });
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
     window.addEventListener('resize', measure);
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('resize', measure); };
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, [layout]);
   const bleed = edge.left > 0 || edge.right > 0;
   if (layout === 'grid') {
