@@ -50,11 +50,11 @@ There is NO `@/config/appIds`, no `@/config/lookupOptions` and no
 `@/lib/urlUtils` — APP_IDS and LOOKUP_OPTIONS come from `@/types/app`,
 createRecordUrl from the service. Note the lowercase `l` in the service path.
 
-- Betriebsdaten (betriebsdaten): zeitstempel![date/datetimeminute], messgroesse!^[string/text], wert![number] "Messwert", einheit^[string/text], bemerkung[string/textarea], sekunde[number]
+- Betriebsdaten (betriebsdaten): zeitstempel!^[date/datetimeminute], messgroesse!^[string/text], wert!^[number] "Messwert", einheit^[string/text], bemerkung[string/textarea], sekunde[number]
   ≡ 269249 records at build time
   · zeitstempel: A specific moment in time consisting of year, month, day, hour and minute (or `null`/`None`) The field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>` (or `null`/`None`). For example: `2000-02-29T11:30`. For `POST`/`PUT`/`PATCH` requests the REST API uses a liberal parsing approach so that strings like `2026`, `February 29, 2000 12:34 MEST`, `letztes Jahr` etc. will be accepted as value datetime values. However this runs the risk of parsing ambiguous values incorrectly. To ensure reliable parsing it is best to use the canonical format specified above.
   ⚙ getBetriebsdaten() · getBetriebsdatenEntry(id) · createBetriebsdatenEntry(fields) · updateBetriebsdatenEntry(id, fields) · deleteBetriebsdatenEntry(id) · queryBetriebsdaten({ filter, orderby, limit, offset, fields }) · countBetriebsdaten(filter?)
-- Auswertung (auswertung): zeitstempel!^[date/datetimeminute], sekunde[number], messgroesse^[string/text], wert[number] "Messwert", einheit^[string/text], bemerkung[string/textarea]
+- Auswertung (auswertung): zeitstempel!^[date/datetimeminute], sekunde[number], messgroesse^[string/text], wert^[number] "Messwert", einheit^[string/text], bemerkung[string/textarea]
   ≡ 52 records at build time
   · zeitstempel: A specific moment in time consisting of year, month, day, hour and minute (or `null`/`None`) The field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>` (or `null`/`None`). For example: `2000-02-29T11:30`. For `POST`/`PUT`/`PATCH` requests the REST API uses a liberal parsing approach so that strings like `2026`, `February 29, 2000 12:34 MEST`, `letztes Jahr` etc. will be accepted as value datetime values. However this runs the risk of parsing ambiguous values incorrectly. To ensure reliable parsing it is best to use the canonical format specified above.
   ⚙ getAuswertung() · getAuswertungEntry(id) · createAuswertungEntry(fields) · updateAuswertungEntry(id, fields) · deleteAuswertungEntry(id) · queryAuswertung({ filter, orderby, limit, offset, fields }) · countAuswertung(filter?)

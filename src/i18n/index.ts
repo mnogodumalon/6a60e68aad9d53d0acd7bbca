@@ -1643,7 +1643,7 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
         "lookups": {}
       },
       "auswertung": {
-        "name": "Analysis",
+        "name": "Evaluation",
         "app_id": "6ae3775e3d50fedbf85e7966",
         "fields": {
           "zeitstempel": "Timestamp",
