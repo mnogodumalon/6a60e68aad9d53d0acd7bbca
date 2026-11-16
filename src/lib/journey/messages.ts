@@ -17,6 +17,7 @@
  *
  * Required fields per entity (from the base view):
  *   - betriebsdaten: zeitstempel (Zeitstempel), messgroesse (Messgröße), wert (Messwert)
+ *   - auswertung_2: zeitstempel (Zeitstempel)
  *   - auswertung: zeitstempel (Zeitstempel)
  */
 import { t, tx } from '@/i18n';
@@ -25,6 +26,7 @@ import { labelOf, type EntityKey } from './rules';
 /** The writable fields of each entity — the keys a message may address (generated). */
 export interface MessageFields {
   "betriebsdaten": "zeitstempel" | "messgroesse" | "wert" | "einheit" | "bemerkung" | "sekunde";
+  "auswertung_2": "zeitstempel" | "sekunde" | "messgroesse" | "wert" | "einheit" | "bemerkung";
   "auswertung": "zeitstempel" | "sekunde" | "messgroesse" | "wert" | "einheit" | "bemerkung";
 }
 export type MessageFieldKey<E extends EntityKey> = E extends keyof MessageFields ? MessageFields[E] : never;

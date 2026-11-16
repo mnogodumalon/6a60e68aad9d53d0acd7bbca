@@ -19,27 +19,32 @@ type RawMutation = { record_id: string; fields?: Record<string, unknown>; create
 
 const listers: Record<EntityKey, () => Promise<RawRecord[]>> = {
   'betriebsdaten': () => LivingAppsService.getBetriebsdaten() as Promise<RawRecord[]>,
+  'auswertung_2': () => LivingAppsService.getAuswertung2() as Promise<RawRecord[]>,
   'auswertung': () => LivingAppsService.getAuswertung() as Promise<RawRecord[]>,
 };
 
 /** The query/count half — the REST parameters the plain listers never send. */
 const queriers: Record<EntityKey, (q: RecordQuery) => Promise<RawRecord[]>> = {
   'betriebsdaten': q => LivingAppsService.queryBetriebsdaten(q) as Promise<RawRecord[]>,
+  'auswertung_2': q => LivingAppsService.queryAuswertung2(q) as Promise<RawRecord[]>,
   'auswertung': q => LivingAppsService.queryAuswertung(q) as Promise<RawRecord[]>,
 };
 
 const counters: Record<EntityKey, (filter?: string, signal?: AbortSignal) => Promise<number>> = {
   'betriebsdaten': (filter, signal) => LivingAppsService.countBetriebsdaten(filter, signal),
+  'auswertung_2': (filter, signal) => LivingAppsService.countAuswertung2(filter, signal),
   'auswertung': (filter, signal) => LivingAppsService.countAuswertung(filter, signal),
 };
 
 const creators: Record<EntityKey, (fields: Record<string, unknown>) => Promise<RawMutation>> = {
   'betriebsdaten': fields => LivingAppsService.createBetriebsdatenEntry(fields as never),
+  'auswertung_2': fields => LivingAppsService.createAuswertung2Entry(fields as never),
   'auswertung': fields => LivingAppsService.createAuswertungEntry(fields as never),
 };
 
 const updaters: Record<EntityKey, (id: string, fields: Record<string, unknown>) => Promise<RawMutation>> = {
   'betriebsdaten': (id, fields) => LivingAppsService.updateBetriebsdatenEntry(id, fields as never),
+  'auswertung_2': (id, fields) => LivingAppsService.updateAuswertung2Entry(id, fields as never),
   'auswertung': (id, fields) => LivingAppsService.updateAuswertungEntry(id, fields as never),
 };
 

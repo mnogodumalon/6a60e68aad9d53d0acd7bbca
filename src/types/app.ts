@@ -47,6 +47,26 @@ export interface Betriebsdaten {
   };
 }
 
+export interface Auswertung2 {
+  record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
+  createdat: string;
+  updatedat: string | null;
+  fields: {
+    zeitstempel?: string; // Format: YYYY-MM-DD oder ISO String
+    sekunde?: number;
+    messgroesse?: string;
+    wert?: number;
+    einheit?: string;
+    bemerkung?: string;
+  };
+}
+
 export interface Auswertung {
   record_id: string;
   /** The API field. */
@@ -69,6 +89,7 @@ export interface Auswertung {
 
 export const APP_IDS = {
   BETRIEBSDATEN: '6a60e68007044c0b94964877',
+  AUSWERTUNG_2: '6afacccffbc22eef38057809',
   AUSWERTUNG: '6ae3775e3d50fedbf85e7966',
 } as const;
 
@@ -77,12 +98,20 @@ export const LOOKUP_OPTIONS: Record<string, Record<string, {key: string, label: 
 
 export const FIELD_TYPES: Record<string, Record<string, string>> = {
   'betriebsdaten': {
-    'zeitstempel': 'date/datetimeminute',
+    'zeitstempel': 'date/datetimesecond',
     'messgroesse': 'string/text',
     'wert': 'number',
     'einheit': 'string/text',
     'bemerkung': 'string/textarea',
     'sekunde': 'number',
+  },
+  'auswertung_2': {
+    'zeitstempel': 'date/datetimeminute',
+    'sekunde': 'number',
+    'messgroesse': 'string/text',
+    'wert': 'number',
+    'einheit': 'string/text',
+    'bemerkung': 'string/textarea',
   },
   'auswertung': {
     'zeitstempel': 'date/datetimeminute',
@@ -105,4 +134,5 @@ type StripLookup<T> = {
 
 // Helper Types for creating new records (lookup fields as plain strings for API)
 export type CreateBetriebsdaten = StripLookup<Betriebsdaten['fields']>;
+export type CreateAuswertung2 = StripLookup<Auswertung2['fields']>;
 export type CreateAuswertung = StripLookup<Auswertung['fields']>;

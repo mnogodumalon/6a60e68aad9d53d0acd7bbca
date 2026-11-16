@@ -24,6 +24,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { t, tp } from '@/i18n';
 import { rangeIsFree } from '@/components/blocks/AvailabilityRangePicker';
 import { formatFieldValue, formatRange, type RangeUnit } from './format';
+import { isUploadValue } from './upload';
 import { FIELD_RULES, isEmptyValue, labelOf, optionsOf, type EntityKey, type FieldRule, type RecordFieldKey } from './rules';
 import { requiredMessage } from './messages';
 import { occupancyRuleOf } from './occupancy';
@@ -102,6 +103,18 @@ export interface RangeOptions {
 }
 
 type ChangeLike = unknown | { target: { value: unknown; type?: string; checked?: boolean } };
+
+/** Binding for a file field — spread onto <FileField>: the value is a pending
+ *  upload (data URL), a stored file URL, or null. */
+export interface FileProps {
+  id: string;
+  name: string;
+  value: string | null;
+  onChange: (value: string | null) => void;
+  required: boolean;
+  invalid: boolean;
+  describedBy?: string;
+}
 
 export interface FieldProps {
   id: string;
@@ -199,6 +212,8 @@ export interface StepForm<E extends EntityKey = EntityKey> {
   choice(key: string): ChoiceProps;
   checkbox(key: string): CheckboxProps;
   record(key: string): RecordProps;
+  /** Binding for a file field (`<FileField {...form.file('beleg')} />`); the chosen file travels in the create as a data URL. */
+  file(key: string): FileProps;
   /** Binding for a multipleapplookup: the value is a `string[]` of record ids,
    *  required means "at least one". `labelOf` (the pick's `useRecordSearch`)
    *  teaches the form the display names the summary shows. */
@@ -445,6 +460,20 @@ export function useStepForm<E extends EntityKey>(entity: E, options: StepFormOpt
     }
   };
 
+  const file = (key: string): FileProps => {
+    const raw = values[key];
+    const err = visibleError(key);
+    return {
+      id: fieldId(key),
+      name: key,
+      value: typeof raw === 'string' && raw ? raw : null,
+      onChange: next => { set(key, next ?? null); touch(key); },
+      required: isRequired(key),
+      invalid: Boolean(err),
+      describedBy: err ? errorId(key) : undefined,
+    };
+  };
+
   const field = (key: string): FieldProps => {
     const rule = rules[key];
     const raw = values[key];
@@ -630,7 +659,9 @@ export function useStepForm<E extends EntityKey>(entity: E, options: StepFormOpt
   const payload = (): FormValues => {
     const out: FormValues = {};
     for (const key of keys) {
-      if (rules[key] && !rules[key].writable) continue;
+      // a file is not writable as a value — but a file the person CHOSE here
+      // travels as a data URL and the platform stores it (lib/journey/upload)
+      if (rules[key] && !rules[key].writable && !(rules[key].kind === 'file' && isUploadValue(values[key]))) continue;
       if (isEmptyValue(values[key])) continue;
       out[key] = values[key];
     }
@@ -657,6 +688,7 @@ export function useStepForm<E extends EntityKey>(entity: E, options: StepFormOpt
     remember,
     reset,
     field,
+    file,
     number,
     date,
     choice,

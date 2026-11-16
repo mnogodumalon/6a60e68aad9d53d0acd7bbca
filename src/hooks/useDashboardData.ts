@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Betriebsdaten, Auswertung } from '@/types/app';
+import type { Betriebsdaten, Auswertung2, Auswertung } from '@/types/app';
 import { LivingAppsService } from '@/services/livingAppsService';
 import { t } from '@/i18n';
 
@@ -14,7 +14,7 @@ import { t } from '@/i18n';
  *  There is no other mechanism (no `__optimistic`, no `mutate`).
  */
 /** Entities this hook can load — the same keys the journey layer uses. */
-export type DashboardEntity = 'betriebsdaten' | 'auswertung';
+export type DashboardEntity = 'betriebsdaten' | 'auswertung_2' | 'auswertung';
 
 export interface DashboardDataOptions {
   /** Entities this page does NOT need (picked through useRecordSearch instead).
@@ -29,6 +29,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
   // on every render and would restart the fetch forever.
   const omitKey = (options.omit ?? []).slice().sort().join('|');
   const [betriebsdaten, setBetriebsdaten] = useState<Betriebsdaten[]>([]);
+  const [auswertung2, setAuswertung2] = useState<Auswertung2[]>([]);
   const [auswertung, setAuswertung] = useState<Auswertung[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -50,7 +51,8 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
       return null;
     };
     { const rows = pick<Betriebsdaten>(0, 'betriebsdaten'); if (rows) setBetriebsdaten(rows); }
-    { const rows = pick<Auswertung>(1, 'auswertung'); if (rows) setAuswertung(rows); }
+    { const rows = pick<Auswertung2>(1, 'auswertung_2'); if (rows) setAuswertung2(rows); }
+    { const rows = pick<Auswertung>(2, 'auswertung'); if (rows) setAuswertung(rows); }
     setForbidden(prev => (prev.join('|') === denied.join('|') ? prev : denied));
     return failure;
   }, []);
@@ -61,6 +63,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
     try {
       const failure = settle(await Promise.allSettled([
         omit.has('betriebsdaten') ? Promise.resolve([] as Betriebsdaten[]) : LivingAppsService.getBetriebsdaten(),
+        omit.has('auswertung_2') ? Promise.resolve([] as Auswertung2[]) : LivingAppsService.getAuswertung2(),
         omit.has('auswertung') ? Promise.resolve([] as Auswertung[]) : LivingAppsService.getAuswertung(),
       ]));
       if (failure) throw failure;
@@ -82,6 +85,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
         // replaces what loaded or was refused
         settle(await Promise.allSettled([
           omit.has('betriebsdaten') ? Promise.resolve([] as Betriebsdaten[]) : LivingAppsService.getBetriebsdaten(),
+          omit.has('auswertung_2') ? Promise.resolve([] as Auswertung2[]) : LivingAppsService.getAuswertung2(),
           omit.has('auswertung') ? Promise.resolve([] as Auswertung[]) : LivingAppsService.getAuswertung(),
         ]));
       } catch {
@@ -97,7 +101,7 @@ export function useDashboardData(options: DashboardDataOptions = {}) {
     return () => window.removeEventListener('assistant:data-changed', handleRefresh);
   }, [omitKey, settle]);
 
-  return { betriebsdaten, setBetriebsdaten, auswertung, setAuswertung, loading, error, fetchAll, forbidden };
+  return { betriebsdaten, setBetriebsdaten, auswertung2, setAuswertung2, auswertung, setAuswertung, loading, error, fetchAll, forbidden };
 }
 
 /** The hook's return — the `data` prop of DashboardOverview in the Ready-Wrapper form. */

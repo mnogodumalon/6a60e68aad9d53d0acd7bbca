@@ -364,7 +364,7 @@ if (gridIdx >= 0) {
 // useEntityCrud() — legacy pages (preserved pre-EntityCrud overviews the
 // update flow keeps verbatim) are exempt by construction.
 {
-  const ENTITY_DIALOG_PASCALS = ["Betriebsdaten", "Auswertung"];
+  const ENTITY_DIALOG_PASCALS = ["Betriebsdaten", "Auswertung2", "Auswertung"];
   if (usesEntityCrud) {
     if (!/import\s*\{[^}]*\buseEntityCrud\b[^}]*\}\s*from\s*'@\/components\/EntityCrud'/.test(code)) {
       errors.push("useEntityCrud() called but not imported from '@/components/EntityCrud' — keep the pre-generated import.");
@@ -401,6 +401,79 @@ if (gridIdx >= 0) {
   const DYN_IMPORT_RE = /\bimport\s*\(\s*['"](?:@\/|\.{1,2}\/)/;
   if (DYN_IMPORT_RE.test(code)) {
     errors.push("Dynamic import() of a first-party module — the app is one bundle, Vite only warns about the mixed static/dynamic import and the code gains nothing. Add the name to the static import at the top of the file (the skeleton already imports LivingAppsService, extractRecordId, createRecordUrl from '@/services/livingAppsService') and call it directly." + quoteLines(DYN_IMPORT_RE));
+  }
+}
+
+// 25. A change an update flow owns is never written from this page. The flow
+// records who and when (a review, a decision); a dashboard button that sets
+// the state itself bypasses that control (live 20.10.2026: „Freigeben“ set a
+// proposal to approved without reviewer or date, next to the very flow the
+// owner's prompt asked for). The page opens the flow for the record:
+// flowActionFor(entity, field, id, value) from '@/config/plan'.
+{
+  const OWNED = {};
+  const callRe = /\b(update\w+Entry)\s*\(/g;
+  let m;
+  const hits = [];
+  while ((m = callRe.exec(code))) {
+    const own = OWNED[m[1]];
+    if (!own) continue;
+    let depth = 0, j = m.index + m[0].length - 1;
+    for (; j < code.length; j++) {
+      if (code[j] === '(') depth++;
+      else if (code[j] === ')' && --depth === 0) break;
+    }
+    const args = code.slice(m.index + m[0].length, j);
+    const keys = new Set();
+    for (const k of args.matchAll(/[{,]\s*(\w+)\s*(?::|(?=[,}]))/g)) keys.add(k[1]);
+    for (const field of Object.keys(own.fields)) {
+      if (!keys.has(field)) continue;
+      const line = code.slice(0, m.index).split('\n').length;
+      const flows = own.fields[field].map(o => `„${o.slug}“${o.value !== undefined ? ` (sets '${o.value}')` : ''}`).join(', ');
+      hits.push(`${own.entity}.${field} — owned by ${flows}\n    line ${line}: ${dashLines[line - 1]}`);
+    }
+  }
+  if (hits.length) {
+    errors.push(`This page writes a field an update flow owns — the flow records who and when, a direct write bypasses it. Replace the write with the flow: \`const go = flowActionFor('<entity>', '<field>', r.record_id, '<target key>')\` (import from '@/config/plan'; null while the flow is not live) and \`action: go ? { label, onClick: go } : undefined\`; a drag calls go?.() and returns a short notice:\n  ` + hits.join('\n  '));
+  }
+}
+
+// 26. The overview writes only what the plan lets it write itself
+// (plan.dashboard.writes — a drag that moves a stay, a button that flips a
+// flag). Audit 23.10.2026: the overview moved bookings and set „An Besitzer
+// gesendet“ with no plan and no line on „Deine Anwendung“. A plan from
+// before that date has no list (null): warn, never fail.
+{
+  const ALLOWED = null;
+  const callRe = /\b((?:update|create|delete)\w+Entry)\s*\(/g;
+  let m;
+  const bad = [];
+  while ((m = callRe.exec(code))) {
+    const name = m[1];
+    const line = code.slice(0, m.index).split('\n').length;
+    if (!name.startsWith('update')) {
+      bad.push(`${name} — the overview never creates or deletes records itself (open crud.<entity>.openCreate / the record overlay)\n    line ${line}: ${dashLines[line - 1]}`);
+      continue;
+    }
+    let depth = 0, j = m.index + m[0].length - 1;
+    for (; j < code.length; j++) {
+      if (code[j] === '(') depth++;
+      else if (code[j] === ')' && --depth === 0) break;
+    }
+    const args = code.slice(m.index + m[0].length, j);
+    const keys = [];
+    for (const k of args.matchAll(/[{,]\s*(\w+)\s*(?::|(?=[,}]))/g)) keys.push(k[1]);
+    const allowed = ALLOWED === null ? { entity: name, fields: [] } : (ALLOWED[name] || { entity: name, fields: [] });
+    const extra = keys.filter(k => !allowed.fields.includes(k));
+    if (extra.length) {
+      const only = ALLOWED === null ? 'no plan decided this yet' : `the plan lets this page write only: ${allowed.fields.length ? allowed.fields.join(', ') : 'nothing'}`;
+      bad.push(`${allowed.entity}: ${extra.join(', ')} — ${only}\n    line ${line}: ${dashLines[line - 1]}`);
+    }
+  }
+  if (bad.length) {
+    const msg = `This page writes fields the plan does not give it (plan.dashboard.writes). A direct write that the plan does not name is invisible on „Deine Anwendung“. Remove the write (use the record dialog: crud.<entity>.openEdit(record)) or ask the owner to change the plan:\n  ` + bad.join('\n  ');
+    if (ALLOWED === null) warnings.push(msg + '\n  (plan from before 23.10.2026 — warning only)');
+    else errors.push(msg);
   }
 }
 

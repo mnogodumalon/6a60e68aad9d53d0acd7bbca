@@ -1,6 +1,22 @@
 {
   "version": 1,
-  "changes": [],
-  "counts": {},
-  "harmless_only": true
+  "changes": [
+    {
+      "kind": "entity_added",
+      "entity": "auswertung_2",
+      "name": "Auswertung 2"
+    },
+    {
+      "kind": "type_changed",
+      "entity": "betriebsdaten",
+      "field": "zeitstempel",
+      "old_fulltype": "date/datetimeminute",
+      "new_fulltype": "date/datetimesecond"
+    }
+  ],
+  "counts": {
+    "entity_added": 1,
+    "type_changed": 1
+  },
+  "harmless_only": false
 }

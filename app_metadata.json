@@ -8,21 +8,26 @@
       "main": false,
       "controls": {
         "zeitstempel": {
+          "kind": "datetimesecondcontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6a60e68007044c0b94964877/controls/zeitstempel",
           "identifier": "zeitstempel",
           "label": "Zeitstempel",
           "type": "date",
-          "subtype": "datetimeminute",
-          "fulltype": "date/datetimeminute",
-          "description": "A specific moment in time consisting of year, month, day, hour and minute (or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>` (or `null`/`None`).\n\nFor example: `2000-02-29T11:30`.\n\nFor `POST`/`PUT`/`PATCH` requests the REST API uses a liberal parsing approach so that strings like `2026`, `February 29, 2000 12:34 MEST`, `letztes Jahr` etc. will be accepted as value datetime values. However this runs the risk of parsing ambiguous values incorrectly. To ensure reliable parsing it is best to use the canonical format specified above.",
+          "subtype": "datetimesecond",
+          "fulltype": "date/datetimesecond",
+          "description": "A specific moment in time consisting of year, month, day, hour, minute and second (or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>` (or `null`/`None`).\n\nFor example: `2000-02-29T12:34:56`.\n\nFor `POST`/`PUT`/`PATCH` requests the REST API uses a liberal parsing approach so that strings like `2026`, `February 29, 2000 12:34 MEST`, `letztes Jahr` etc. will be accepted as value datetime values. However this runs the risk of parsing ambiguous values incorrectly. To ensure reliable parsing it is best to use the canonical format specified above.",
           "required": true,
-          "in_list": true,
+          "in_list": false,
           "in_mobile_list": true,
           "in_text": true,
           "in_structured_search": "simple",
           "in_fulltext_search": true,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         },
         "messgroesse": {
+          "kind": "textcontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6a60e68007044c0b94964877/controls/messgroesse",
           "identifier": "messgroesse",
           "label": "Messgröße",
           "type": "string",
@@ -35,9 +40,12 @@
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": true,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         },
         "wert": {
+          "kind": "numbercontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6a60e68007044c0b94964877/controls/wert",
           "identifier": "wert",
           "label": "Messwert",
           "type": "number",
@@ -45,15 +53,18 @@
           "fulltype": "number",
           "description": "A decimal number value (or `null`/`None`).",
           "required": true,
-          "in_list": true,
+          "in_list": false,
           "in_mobile_list": true,
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": true,
           "in_expert_search": true,
+          "translations": null,
           "precision": null
         },
         "einheit": {
+          "kind": "textcontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6a60e68007044c0b94964877/controls/einheit",
           "identifier": "einheit",
           "label": "Einheit",
           "type": "string",
@@ -66,9 +77,12 @@
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": true,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         },
         "bemerkung": {
+          "kind": "textareacontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6a60e68007044c0b94964877/controls/bemerkung",
           "identifier": "bemerkung",
           "label": "Bemerkung",
           "type": "string",
@@ -81,9 +95,12 @@
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": false,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         },
         "sekunde": {
+          "kind": "numbercontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6a60e68007044c0b94964877/controls/sekunde",
           "identifier": "sekunde",
           "label": "Sekunde",
           "type": "number",
@@ -97,7 +114,125 @@
           "in_structured_search": null,
           "in_fulltext_search": false,
           "in_expert_search": true,
+          "translations": null,
           "precision": null
+        }
+      }
+    },
+    "auswertung_2": {
+      "app_id": "6afacccffbc22eef38057809",
+      "name": "Auswertung 2",
+      "main": false,
+      "controls": {
+        "zeitstempel": {
+          "kind": "datetimeminutecontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6afacccffbc22eef38057809/controls/zeitstempel",
+          "identifier": "zeitstempel",
+          "label": "Zeitstempel",
+          "type": "date",
+          "subtype": "datetimeminute",
+          "fulltype": "date/datetimeminute",
+          "description": "A specific moment in time consisting of year, month, day, hour and minute (or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>` (or `null`/`None`).\n\nFor example: `2000-02-29T11:30`.\n\nFor `POST`/`PUT`/`PATCH` requests the REST API uses a liberal parsing approach so that strings like `2026`, `February 29, 2000 12:34 MEST`, `letztes Jahr` etc. will be accepted as value datetime values. However this runs the risk of parsing ambiguous values incorrectly. To ensure reliable parsing it is best to use the canonical format specified above.",
+          "required": true,
+          "in_list": true,
+          "in_mobile_list": true,
+          "in_text": true,
+          "in_structured_search": null,
+          "in_fulltext_search": true,
+          "in_expert_search": true,
+          "translations": null
+        },
+        "sekunde": {
+          "kind": "numbercontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6afacccffbc22eef38057809/controls/sekunde",
+          "identifier": "sekunde",
+          "label": "Sekunde",
+          "type": "number",
+          "subtype": null,
+          "fulltype": "number",
+          "description": "A decimal number value (or `null`/`None`).",
+          "required": false,
+          "in_list": true,
+          "in_mobile_list": true,
+          "in_text": true,
+          "in_structured_search": null,
+          "in_fulltext_search": true,
+          "in_expert_search": true,
+          "translations": null,
+          "precision": null
+        },
+        "messgroesse": {
+          "kind": "textcontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6afacccffbc22eef38057809/controls/messgroesse",
+          "identifier": "messgroesse",
+          "label": "Messgröße",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`/`None`).",
+          "required": false,
+          "in_list": true,
+          "in_mobile_list": false,
+          "in_text": false,
+          "in_structured_search": null,
+          "in_fulltext_search": true,
+          "in_expert_search": true,
+          "translations": null
+        },
+        "wert": {
+          "kind": "numbercontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6afacccffbc22eef38057809/controls/wert",
+          "identifier": "wert",
+          "label": "Messwert",
+          "type": "number",
+          "subtype": null,
+          "fulltype": "number",
+          "description": "A decimal number value (or `null`/`None`).",
+          "required": false,
+          "in_list": true,
+          "in_mobile_list": false,
+          "in_text": false,
+          "in_structured_search": null,
+          "in_fulltext_search": true,
+          "in_expert_search": true,
+          "translations": null,
+          "precision": null
+        },
+        "einheit": {
+          "kind": "textcontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6afacccffbc22eef38057809/controls/einheit",
+          "identifier": "einheit",
+          "label": "Einheit",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`/`None`).",
+          "required": false,
+          "in_list": true,
+          "in_mobile_list": false,
+          "in_text": false,
+          "in_structured_search": null,
+          "in_fulltext_search": true,
+          "in_expert_search": true,
+          "translations": null
+        },
+        "bemerkung": {
+          "kind": "textareacontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6afacccffbc22eef38057809/controls/bemerkung",
+          "identifier": "bemerkung",
+          "label": "Bemerkung",
+          "type": "string",
+          "subtype": "textarea",
+          "fulltype": "string/textarea",
+          "description": "A string value that can contain multiple lines of text (or `null`/`None`).",
+          "required": false,
+          "in_list": false,
+          "in_mobile_list": false,
+          "in_text": false,
+          "in_structured_search": null,
+          "in_fulltext_search": null,
+          "in_expert_search": true,
+          "translations": null
         }
       }
     },
@@ -107,6 +242,8 @@
       "main": false,
       "controls": {
         "zeitstempel": {
+          "kind": "datetimeminutecontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6ae3775e3d50fedbf85e7966/controls/zeitstempel",
           "identifier": "zeitstempel",
           "label": "Zeitstempel",
           "type": "date",
@@ -114,14 +251,17 @@
           "fulltype": "date/datetimeminute",
           "description": "A specific moment in time consisting of year, month, day, hour and minute (or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>` (or `null`/`None`).\n\nFor example: `2000-02-29T11:30`.\n\nFor `POST`/`PUT`/`PATCH` requests the REST API uses a liberal parsing approach so that strings like `2026`, `February 29, 2000 12:34 MEST`, `letztes Jahr` etc. will be accepted as value datetime values. However this runs the risk of parsing ambiguous values incorrectly. To ensure reliable parsing it is best to use the canonical format specified above.",
           "required": true,
-          "in_list": true,
+          "in_list": false,
           "in_mobile_list": true,
           "in_text": true,
           "in_structured_search": "simple",
           "in_fulltext_search": true,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         },
         "sekunde": {
+          "kind": "numbercontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6ae3775e3d50fedbf85e7966/controls/sekunde",
           "identifier": "sekunde",
           "label": "Sekunde",
           "type": "number",
@@ -135,9 +275,12 @@
           "in_structured_search": null,
           "in_fulltext_search": true,
           "in_expert_search": true,
+          "translations": null,
           "precision": null
         },
         "messgroesse": {
+          "kind": "textcontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6ae3775e3d50fedbf85e7966/controls/messgroesse",
           "identifier": "messgroesse",
           "label": "Messgröße",
           "type": "string",
@@ -146,13 +289,16 @@
           "description": "A string value not longer than 4000 characters (or `null`/`None`).",
           "required": false,
           "in_list": true,
-          "in_mobile_list": false,
+          "in_mobile_list": true,
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": true,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         },
         "wert": {
+          "kind": "numbercontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6ae3775e3d50fedbf85e7966/controls/wert",
           "identifier": "wert",
           "label": "Messwert",
           "type": "number",
@@ -160,15 +306,18 @@
           "fulltype": "number",
           "description": "A decimal number value (or `null`/`None`).",
           "required": false,
-          "in_list": true,
-          "in_mobile_list": false,
+          "in_list": false,
+          "in_mobile_list": true,
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": true,
           "in_expert_search": true,
+          "translations": null,
           "precision": null
         },
         "einheit": {
+          "kind": "textcontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6ae3775e3d50fedbf85e7966/controls/einheit",
           "identifier": "einheit",
           "label": "Einheit",
           "type": "string",
@@ -181,9 +330,12 @@
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": true,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         },
         "bemerkung": {
+          "kind": "textareacontrol",
+          "url": "https://my.living-apps.de/rest/v1/apps/6ae3775e3d50fedbf85e7966/controls/bemerkung",
           "identifier": "bemerkung",
           "label": "Bemerkung",
           "type": "string",
@@ -196,7 +348,8 @@
           "in_text": false,
           "in_structured_search": null,
           "in_fulltext_search": true,
-          "in_expert_search": true
+          "in_expert_search": true,
+          "translations": null
         }
       }
     }
@@ -204,6 +357,7 @@
   "metadata": {
     "apps_list": [
       "Betriebsdaten",
+      "Auswertung 2",
       "Auswertung"
     ]
   }

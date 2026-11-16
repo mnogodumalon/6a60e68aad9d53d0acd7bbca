@@ -42,10 +42,11 @@
  * Overlay content per entity (the host renders these — you never compose
  * Details blocks yourself):
  *   betriebsdaten: zeitstempel, messgroesse, wert, einheit, bemerkung, sekunde
+ *   auswertung_2: zeitstempel, sekunde, messgroesse, wert, einheit, bemerkung
  *   auswertung: zeitstempel, sekunde, messgroesse, wert, einheit, bemerkung
  */
 import { useState, type ReactNode } from 'react';
-import type { Betriebsdaten, Auswertung } from '@/types/app';
+import type { Betriebsdaten, Auswertung2, Auswertung } from '@/types/app';
 import { LivingAppsService } from '@/services/livingAppsService';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import {
@@ -54,6 +55,8 @@ import {
 } from '@/components/widgets/RecordView';
 import { BetriebsdatenDialog, type BetriebsdatenDialogDefaults } from '@/components/dialogs/BetriebsdatenDialog';
 import { BetriebsdatenDetails } from '@/components/details/BetriebsdatenDetails';
+import { Auswertung2Dialog, type Auswertung2DialogDefaults } from '@/components/dialogs/Auswertung2Dialog';
+import { Auswertung2Details } from '@/components/details/Auswertung2Details';
 import { AuswertungDialog, type AuswertungDialogDefaults } from '@/components/dialogs/AuswertungDialog';
 import { AuswertungDetails } from '@/components/details/AuswertungDetails';
 import { AI_PHOTO_SCAN, AI_PHOTO_LOCATION } from '@/config/ai-features';
@@ -68,6 +71,7 @@ import { formatDate } from '@/lib/formatters';
 // The host resolves enrichment itself; pages pass raw records everywhere.
 export type OverlayItem =
   | { type: 'betriebsdaten'; record: Betriebsdaten }
+  | { type: 'auswertung2'; record: Auswertung2 }
   | { type: 'auswertung'; record: Auswertung };
 
 /** The useDashboardData() return — pass it in, never re-fetch inside. */
@@ -99,11 +103,12 @@ export interface EntityCrud {
   /** Render ONCE at the end of the page JSX — all dialogs + the overlay host. */
   surfaces: ReactNode;
   betriebsdaten: EntityCrudApi<Betriebsdaten, BetriebsdatenDialogDefaults>;
+  auswertung2: EntityCrudApi<Auswertung2, Auswertung2DialogDefaults>;
   auswertung: EntityCrudApi<Auswertung, AuswertungDialogDefaults>;
   /** The display-ready array per entity: Enriched* where an enrich function
    *  exists, the raw array otherwise. One key per entity so no page has to
    *  know which is which. Reuse these; never re-enrich in the page. */
-  enriched: { betriebsdaten: Betriebsdaten[]; auswertung: Auswertung[] };
+  enriched: { betriebsdaten: Betriebsdaten[]; auswertung2: Auswertung2[]; auswertung: Auswertung[] };
 }
 
 export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions): EntityCrud {
@@ -112,6 +117,7 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
   const perms = usePermissions();
   const refuse = () => { toast.error(t('perm_denied_title'), { description: t('perm_denied_desc') }); };
   const [betriebsdatenDialog, setBetriebsdatenDialog] = useState<{ defaults?: BetriebsdatenDialogDefaults; editing?: Betriebsdaten } | null>(null);
+  const [auswertung2Dialog, setAuswertung2Dialog] = useState<{ defaults?: Auswertung2DialogDefaults; editing?: Auswertung2 } | null>(null);
   const [auswertungDialog, setAuswertungDialog] = useState<{ defaults?: AuswertungDialogDefaults; editing?: Auswertung } | null>(null);
 
   function detailBetriebsdaten(record: Betriebsdaten, push = false) {
@@ -137,6 +143,33 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
     } else {
       await LivingAppsService.createBetriebsdatenEntry(fields);
       undoToast(`${appLabel('betriebsdaten')} — ${t('crud_created')}`);
+      data.fetchAll();
+    }
+  }
+
+  function detailAuswertung2(record: Auswertung2, push = false) {
+    const item: OverlayItem = { type: 'auswertung2', record };
+    if (push) overlay.push(item); else overlay.replace(item);
+  }
+
+  async function submitAuswertung2(fields: Auswertung2['fields']) {
+    const editing = auswertung2Dialog?.editing;
+    if (editing) {
+      const prev = editing;
+      data.setAuswertung2(list => list.map(r => (r.record_id === editing.record_id ? { ...r, fields } : r)));
+      try {
+        await LivingAppsService.updateAuswertung2Entry(editing.record_id, fields);
+      } catch (err) {
+        data.fetchAll();
+        throw err;
+      }
+      undoToast(`${appLabel('auswertung_2')} — ${t('crud_updated')}`, async () => {
+        data.setAuswertung2(list => list.map(r => (r.record_id === prev.record_id ? prev : r)));
+        try { await LivingAppsService.updateAuswertung2Entry(prev.record_id, prev.fields); } catch { data.fetchAll(); }
+      });
+    } else {
+      await LivingAppsService.createAuswertung2Entry(fields);
+      undoToast(`${appLabel('auswertung_2')} — ${t('crud_created')}`);
       data.fetchAll();
     }
   }
@@ -179,6 +212,15 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
         enablePhotoScan={AI_PHOTO_SCAN['Betriebsdaten']}
         enablePhotoLocation={AI_PHOTO_LOCATION['Betriebsdaten']}
       />
+      <Auswertung2Dialog
+        open={auswertung2Dialog !== null}
+        onClose={() => setAuswertung2Dialog(null)}
+        onSubmit={submitAuswertung2}
+        defaultValues={auswertung2Dialog?.defaults}
+        recordId={auswertung2Dialog?.editing?.record_id}
+        enablePhotoScan={AI_PHOTO_SCAN['Auswertung2']}
+        enablePhotoLocation={AI_PHOTO_LOCATION['Auswertung2']}
+      />
       <AuswertungDialog
         open={auswertungDialog !== null}
         onClose={() => setAuswertungDialog(null)}
@@ -204,6 +246,16 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
               </>
             );
           }
+          if (top.type === 'auswertung2') {
+            return (
+              <>
+                <RecordHeader title={top.record.fields.messgroesse ?? appLabel('auswertung_2')} subtitle={top.record.fields.zeitstempel ? formatDate(top.record.fields.zeitstempel) : undefined} />
+                <Auswertung2Details
+                  record={top.record}
+                />
+              </>
+            );
+          }
           if (top.type === 'auswertung') {
             return (
               <>
@@ -218,12 +270,14 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
         }}
         canEdit={(top) => {
           if (top.type === 'betriebsdaten') return perms.canWrite('betriebsdaten');
+          if (top.type === 'auswertung2') return perms.canWrite('auswertung_2');
           if (top.type === 'auswertung') return perms.canWrite('auswertung');
           return true;
         }}
         onEdit={(top) => {
           overlay.close();
           if (top.type === 'betriebsdaten') setBetriebsdatenDialog({ editing: top.record, defaults: top.record.fields });
+          if (top.type === 'auswertung2') setAuswertung2Dialog({ editing: top.record, defaults: top.record.fields });
           if (top.type === 'auswertung') setAuswertungDialog({ editing: top.record, defaults: top.record.fields });
         }}
       />
@@ -239,12 +293,18 @@ export function useEntityCrud(data: EntityCrudData, options?: EntityCrudOptions)
       openDetail: (record: Betriebsdaten) => detailBetriebsdaten(record, false),
       canWrite: perms.canWrite('betriebsdaten'),
     },
+    auswertung2: {
+      openCreate: (defaults?: Auswertung2DialogDefaults) => (perms.canWrite('auswertung_2') ? setAuswertung2Dialog({ defaults }) : refuse()),
+      openEdit: (record: Auswertung2) => (perms.canWrite('auswertung_2') ? setAuswertung2Dialog({ editing: record, defaults: record.fields }) : refuse()),
+      openDetail: (record: Auswertung2) => detailAuswertung2(record, false),
+      canWrite: perms.canWrite('auswertung_2'),
+    },
     auswertung: {
       openCreate: (defaults?: AuswertungDialogDefaults) => (perms.canWrite('auswertung') ? setAuswertungDialog({ defaults }) : refuse()),
       openEdit: (record: Auswertung) => (perms.canWrite('auswertung') ? setAuswertungDialog({ editing: record, defaults: record.fields }) : refuse()),
       openDetail: (record: Auswertung) => detailAuswertung(record, false),
       canWrite: perms.canWrite('auswertung'),
     },
-    enriched: { betriebsdaten: data.betriebsdaten, auswertung: data.auswertung },
+    enriched: { betriebsdaten: data.betriebsdaten, auswertung2: data.auswertung2, auswertung: data.auswertung },
   };
 }

@@ -462,12 +462,12 @@ function makeFetch(cfg, log) {
       // The internal door (livingAppsService via servicePort): the same
       // synthetic records, the app's REST shapes — a list is a map keyed by
       // id, one record carries `id`, aggregate_records answers [[n]].
-      m = /\/rest\/apps\/([^/?]+)\/aggregate_records/.exec(url);
+      m = /\/rest(?:\/v1)?\/apps\/([^/?]+)\/aggregate_records/.exec(url);
       if (m) {
         const entity = entityByAppId(m[1]);
         return json([[entity ? Object.keys(recordsFor(entity)).length : 0]]);
       }
-      m = /\/rest\/apps\/([^/?]+)\/records\/([^/?]+)(\?|$)/.exec(url);
+      m = /\/rest(?:\/v1)?\/apps\/([^/?]+)\/records\/([^/?]+)(\?|$)/.exec(url);
       if (m && method === 'GET') {
         const entity = entityByAppId(m[1]);
         const rec = entity ? recordsFor(entity)[m[2]] : null;
@@ -485,7 +485,7 @@ function makeFetch(cfg, log) {
         return json(rec);
       }
       if (m && method === 'DELETE') return new Response('', { status: 204 });
-      m = /\/rest\/apps\/([^/?]+)\/records(\?|$)/.exec(url);
+      m = /\/rest(?:\/v1)?\/apps\/([^/?]+)\/records(\?|$)/.exec(url);
       if (m && method === 'GET') {
         const entity = entityByAppId(m[1]);
         return json(entity ? recordsFor(entity) : {});
@@ -500,7 +500,7 @@ function makeFetch(cfg, log) {
         log.created.push({ app_id: m[1], fields });
         return json(rec, 201);
       }
-      if (/\/rest\/user(\?|$)/.test(url)) return json({ id: 'smoke-user', name: 'Smoke' });
+      if (/\/rest(?:\/v1)?\/user(\?|$)/.test(url)) return json({ id: 'smoke-user', name: 'Smoke' });
       if (/sentry|\/rest\/|\/litellm\//.test(url)) return new Response('', { status: 204 });
       log.unexpected.push(`${method} ${url}`);
       return new Response('{}', { status: 404, headers: { 'content-type': 'application/json' } });
@@ -691,11 +691,38 @@ const CONTROL_SELECTOR = [
   '[data-field]', 'input:not([type="hidden"])', 'textarea', 'select',
   '[role="radio"]', '[role="option"]', '[role="checkbox"]', '[role="combobox"]',
   'button[aria-pressed]', '[data-key]', '[data-journey-range]',
-  '[data-journey-summary]', '[data-journey-success]',
+  '[data-journey-summary]', '[data-journey-success]', '[data-journey-file]',
 ].join(', ');
 
 function hasControls(region) {
   return Array.from(region.querySelectorAll(CONTROL_SELECTOR)).some(visible);
+}
+
+// A step that SHOWS something instead of asking („Vorschlag ansehen“, the
+// decision's preparation before the verdict) has no control — and is not
+// empty: below its heading it renders values of a record the door served.
+// A hint sentence alone („Bitte unten fortfahren.“) still is an empty step.
+// Live 20.10.2026 two lanes failed here and added a meaningless
+// data-key/data-field to a div just to pass; a gate that punishes a
+// legitimate step trains the agents to game it.
+function readContent(region) {
+  const clone = region.cloneNode(true);
+  for (const el of clone.querySelectorAll('[data-journey-step-heading], button, nav, [role="alert"]')) el.remove();
+  return text(clone);
+}
+function showsRecord(region) {
+  const content = readContent(region);
+  if (!content) return false;
+  for (const map of recordsCache.values()) {
+    for (const rec of Object.values(map)) {
+      for (const v of Object.values(rec.fields || {})) {
+        const s = v && typeof v === 'object' && 'label' in v ? v.label : v;
+        if (typeof s !== 'string' || s.trim().length < 4 || /^https?:|^\d{4}-\d{2}-\d{2}/.test(s)) continue;
+        if (content.includes(s.trim().slice(0, 20))) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function fillStep(region, doc) {
@@ -728,6 +755,15 @@ function fillStep(region, doc) {
     box.focus(); click(box);
     setNativeValue(box, 'a');
     actions.push('combobox open');
+  }
+  // A file field (FileField): choose a small PDF once — it travels as a data URL.
+  for (const el of region.querySelectorAll('input[type="file"]')) {
+    if (el.disabled || !el.parentElement || !el.parentElement.querySelector('[data-journey-file]')) continue;
+    const win = el.ownerDocument.defaultView;
+    const file = new win.File(['%PDF-1.4\n%%EOF\n'], 'smoke.pdf', { type: 'application/pdf' });
+    Object.defineProperty(el, 'files', { value: [file], configurable: true });
+    el.dispatchEvent(new win.Event('change', { bubbles: true }));
+    actions.push('file smoke.pdf');
   }
   // Plain controls.
   for (const el of region.querySelectorAll('input:not([type="hidden"]), textarea, select')) {
@@ -931,12 +967,13 @@ async function smokePage(page) {
       const region = stepRegion(doc);
       const label = region.getAttribute('aria-label') || `step ${step}`;
       const stepText = text(region);
-      if (!hasControls(region)) {
-        fail(`step ${step} "${label}" shows a heading and no control, card or summary — visible: ${JSON.stringify(stepText.slice(0, 200))}`);
+      const reading = !hasControls(region) && showsRecord(region);
+      if (!hasControls(region) && !reading) {
+        fail(`step ${step} "${label}" shows a heading and nothing else — no control, card, summary or content (a step that only SHOWS the picked record passes when it renders that record) — visible: ${JSON.stringify(stepText.slice(0, 200))}`);
         pageReport.result = 'empty-step';
         return pageReport;
       }
-      const actions = fillStep(region, doc);
+      const actions = reading ? ['read'] : fillStep(region, doc);
       await settle(doc, fetchImpl, 2500);
       // A combobox opened above: take its first option now that it rendered.
       const option = Array.from(doc.querySelectorAll('[role="option"]')).find(visible);

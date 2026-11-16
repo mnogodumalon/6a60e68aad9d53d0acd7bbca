@@ -11,6 +11,7 @@ import { DatePicker } from '@/components/DatePicker';
 import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { AvailabilityRangePicker, rangeIsFree } from '@/components/blocks/AvailabilityRangePicker';
 import { ChoiceGroup } from '@/components/blocks/ChoiceGroup';
+import { FileField } from '@/components/blocks/FileField';
 import { FieldErrorSummary } from '@/components/blocks/FieldErrorSummary';
 import { SuccessStep } from '@/components/blocks/SuccessStep';
 // Feldlabels/Options folgen der Besucher-Browsersprache über das Bundle;
@@ -107,6 +108,10 @@ function FieldInput({ field, appId, form, smallLookup, refOptions, refLoading, o
   const options = field.options ?? [];
   const key = field.key;
 
+  // a document the visitor sends: it travels in the create (lib/journey/upload)
+  if (ft === 'file' || ft.startsWith('file/')) {
+    return <FileField {...form.file(key)} />;
+  }
   if (ft.includes('applookup')) {
     if (refLoading) {
       return <IconLoader2 size={18} stroke={1.5} className="animate-spin text-muted-foreground" />;

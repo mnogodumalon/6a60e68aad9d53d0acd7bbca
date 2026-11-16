@@ -162,6 +162,11 @@ if (pages.length && existsSync(SURFACE)) {
     const allowed = new Set([...(page.lists || []).map(l => `${l.entity}:list`), ...(page.creates || []).map(c => `${c.entity}:create`)]);
     for (const ep of sp.endpoints || []) {
       const key = `${ep.entity}:${ep.op}`;
+      // An availability read is Klar's own (intents_integration.add_availability_endpoints,
+      // from the occupancy decision): dates, resource, status of what is taken — never
+      // who. It is not a plan decision; rejecting it made the repair agent strip the
+      // calendar off a booking page (Pension Gästehaus 23.10.2026).
+      if (ep.op === 'list' && ep.purpose === 'availability') continue;
       if (!allowed.has(key)) {
         errors.push(`${file}: public page '${page.slug}' declares ${ep.op} on '${ep.entity}' — the plan allows only: ${[...allowed].join(', ') || 'nothing'}`);
       }

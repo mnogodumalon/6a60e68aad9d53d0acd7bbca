@@ -13,7 +13,7 @@ index.css is pre-generated with the shared design system. Do NOT edit it.
 src/config/ai-features.ts is editable — set AI_PHOTO_SCAN['Entity'] = true to enable photo scan in dialogs.
 NEVER use Bash cat/echo/heredoc for file operations — always use Read/Write/Edit tools.
 
-Generated 143 scaffold files:
+Generated 149 scaffold files:
   - src/App.tsx
   - src/i18n/index.ts
   - src/i18n/common.ts
@@ -51,6 +51,7 @@ Generated 143 scaffold files:
   - src/components/DatePicker.tsx
   - .placeholder-tasks.json
   - src/config/form-enhancements/types.ts
+  - src/config/form-enhancements/Auswertung2.ts
   - scripts/parse-formulas.mjs
   - scripts/apply-placeholders.mjs
   - src/config/intents.ts
@@ -73,6 +74,8 @@ Generated 143 scaffold files:
   - src/components/blocks/Field.tsx
   - src/components/blocks/Bound.tsx
   - src/components/blocks/InlineCreate.tsx
+  - src/components/blocks/FileField.tsx
+  - src/components/blocks/ListEntries.tsx
   - src/lib/journey/policy.ts
   - src/lib/journey/usePolicy.ts
   - src/lib/journey/intentPolicy.ts
@@ -86,6 +89,7 @@ Generated 143 scaffold files:
   - src/lib/journey/fields.ts
   - src/lib/journey/recordLabels.ts
   - src/lib/journey/flowLinks.ts
+  - src/lib/journey/upload.ts
   - src/lib/journey/useOccupancy.ts
   - src/lib/journey/useRecordCount.ts
   - src/lib/journey/useRecordSearch.ts
@@ -152,6 +156,8 @@ Generated 143 scaffold files:
   - tsconfig.app.json
   - src/components/dialogs/BetriebsdatenDialog.tsx
   - src/components/details/BetriebsdatenDetails.tsx
+  - src/components/dialogs/Auswertung2Dialog.tsx
+  - src/components/details/Auswertung2Details.tsx
   - src/components/dialogs/AuswertungDialog.tsx
   - src/components/details/AuswertungDetails.tsx
   - src/components/EntityCrud.tsx
@@ -164,6 +170,7 @@ Generated 143 scaffold files:
 These are ALL the keys; the names are shown for orientation only:
 
   appLabel('betriebsdaten')  →  Betriebsdaten
+  appLabel('auswertung_2')   →  Auswertung 2
   appLabel('auswertung')     →  Auswertung
 
 WRONG: `title="Betriebsdaten"` — and equally wrong: a local helper that returns
@@ -272,6 +279,7 @@ contracts; Read one only if the contract below is insufficient.
  * Overlay content per entity (the host renders these — you never compose
  * Details blocks yourself):
  *   betriebsdaten: zeitstempel, messgroesse, wert, einheit, bemerkung, sekunde
+ *   auswertung_2: zeitstempel, sekunde, messgroesse, wert, einheit, bemerkung
  *   auswertung: zeitstempel, sekunde, messgroesse, wert, einheit, bemerkung
  */
 ```

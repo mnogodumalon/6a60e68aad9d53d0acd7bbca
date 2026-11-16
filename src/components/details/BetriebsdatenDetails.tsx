@@ -20,7 +20,7 @@ export function BetriebsdatenDetails({
   return (
     <>
       <RecordSection title={t('details')} cols={2}>
-        <RecordField label={fieldLabel('betriebsdaten', 'zeitstempel')} value={record.fields.zeitstempel} format="datetime" />
+        <RecordField label={fieldLabel('betriebsdaten', 'zeitstempel')} value={record.fields.zeitstempel} format="date" />
         <RecordField label={fieldLabel('betriebsdaten', 'messgroesse')} value={record.fields.messgroesse} format="text" />
         <RecordField label={fieldLabel('betriebsdaten', 'wert')} value={record.fields.wert} format="text" />
         <RecordField label={fieldLabel('betriebsdaten', 'einheit')} value={record.fields.einheit} format="text" />

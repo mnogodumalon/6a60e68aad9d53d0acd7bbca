@@ -5,7 +5,8 @@
 //
 // The decision itself (stay or not, which field is the resource, which
 // statuses do not occupy) is the build agent's; this gate checks only FORM:
-// every entity exists, from/to are date fields, the resource is an applookup,
+// every entity exists, from/to are date fields, the resource is an applookup
+// or a single lookup (a place number),
 // the status field is a lookup and its free keys are real options. A typo
 // here would silently disable the calendar on both doors.
 import { existsSync, readFileSync } from 'node:fs';
@@ -70,8 +71,8 @@ if (block) {
       }
       if (resource !== undefined) {
         if (!controls[resource]) errors.push(`${FILE}: '${entity}.${resource}' (resource) is not a field of the entity`);
-        else if (!String(controls[resource].fulltype ?? '').includes('applookup')) {
-          errors.push(`${FILE}: '${entity}.${resource}' (resource) is ${controls[resource].fulltype} — the resource must be an applookup field`);
+        else if (!/^(applookup|lookup\/)/.test(String(controls[resource].fulltype ?? ''))) {
+          errors.push(`${FILE}: '${entity}.${resource}' (resource) is ${controls[resource].fulltype} — the resource must be an applookup or a single lookup field`);
         }
       }
       if (statusField !== undefined) {

@@ -152,7 +152,14 @@ export function FieldPolicyEditor(props: FieldPolicyEditorProps) {
   const defaultOp = (ff?: FilterField): FilterOp => (ff?.ops[0] ?? 'eq');
   const setCondition = (entity: string, idx: number, patch: Partial<FilterCondition>) => {
     const f = shownFilter(entity) ?? { mode: 'all' as const, conditions: [] };
-    writeFilter(entity, { mode: f.mode, conditions: f.conditions.map((c, i) => (i === idx ? { ...c, ...patch } : c)) });
+    // A list without a filter shows one placeholder row („kein Filter“) that is
+    // NOT in `conditions` — picking a field there must CREATE the condition.
+    // Live 23.10.2026 (Pension Gästehaus): the map over the empty array wrote
+    // nothing, so a list the agent left unfiltered could never get a filter.
+    const conditions = idx < f.conditions.length
+      ? f.conditions.map((c, i) => (i === idx ? { ...c, ...patch } : c))
+      : [...f.conditions, { field: '', op: 'eq' as FilterOp, ...patch }];
+    writeFilter(entity, { mode: f.mode, conditions });
   };
   const addCondition = (entity: string, fields: FilterField[]) => {
     const f = shownFilter(entity) ?? { mode: 'all' as const, conditions: [] };

@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/DatePicker';
 import { ChoiceGroup } from '@/components/blocks/ChoiceGroup';
+import { FileField } from '@/components/blocks/FileField';
 import { Field, useEnclosingField } from '@/components/blocks/Field';
 import { labelOf, type FieldKind } from '@/lib/journey/rules';
 import type { StepForm } from '@/lib/journey/useStepForm';
@@ -32,7 +33,7 @@ import type { StepForm } from '@/lib/journey/useStepForm';
  * <Field name="x"><Bound name="x" /></Field> is harmless: Bound sees the
  * enclosing Field (context) and renders only the control. One label, always.
  */
-export type BoundControl = 'input' | 'textarea' | 'date' | 'choice' | 'checkbox';
+export type BoundControl = 'input' | 'textarea' | 'date' | 'choice' | 'checkbox' | 'file';
 
 export interface BoundProps {
   form: StepForm;
@@ -58,6 +59,7 @@ export function controlFor(kind: FieldKind | undefined): BoundControl {
     case 'datetime': return 'date';
     case 'lookup': return 'choice';
     case 'bool': return 'checkbox';
+    case 'file': return 'file';
     default: return 'input';
   }
 }
@@ -96,6 +98,9 @@ export function Bound({ form, name, label, hint, placeholder, rows = 3, allowCle
       break;
     case 'choice':
       node = <ChoiceGroup {...form.choice(name)} allowClear={allowClear} />;
+      break;
+    case 'file':
+      node = <FileField {...form.file(name)} />;
       break;
     default:
       node = <Input {...(rule?.kind === 'number' ? form.number(name) : form.field(name))} placeholder={placeholder} />;

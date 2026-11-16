@@ -1,8 +1,9 @@
 // AUTOMATICALLY GENERATED SERVICE
 import { APP_IDS, LOOKUP_OPTIONS, FIELD_TYPES } from '@/types/app';
 import { ensureUploadableImage } from '@/lib/ai';
-import { REST_URL } from '@/lib/origin';
-import type { Betriebsdaten, Auswertung, CreateBetriebsdaten, CreateAuswertung } from '@/types/app';
+import { REST_URL, restFetch } from '@/lib/origin';
+import { reportFailedWrite } from '@/lib/sentry';
+import type { Betriebsdaten, Auswertung2, Auswertung, CreateBetriebsdaten, CreateAuswertung2, CreateAuswertung } from '@/types/app';
 
 // Base Configuration — the host is a RUNTIME fact (lib/origin.ts):
 // a bundle copied to another LA instance must talk to THAT instance.
@@ -38,6 +39,9 @@ export function createRecordUrl(appId: string, recordId: string): string {
 export class LivingAppsApiError extends Error {
   status: number;
   type?: string;
+  /** Stable error type identifier — the last path segment of `type`
+   *  (v1: `…/rest/v1/docs/errors/<id>`, e.g. `no_app_permission`). */
+  code?: string;
   control_identifier?: string;
   control_type?: string;
   field_type?: string;
@@ -48,6 +52,7 @@ export class LivingAppsApiError extends Error {
     this.status = status;
     if (raw) {
       this.type = typeof raw.type === 'string' ? raw.type : undefined;
+      this.code = this.type ? this.type.replace(/\/+$/, '').split('/').pop() : undefined;
       this.control_identifier = typeof raw.control_identifier === 'string' ? raw.control_identifier : undefined;
       this.control_type = typeof raw.control_type === 'string' ? raw.control_type : undefined;
       this.field_type = typeof raw.field_type === 'string' ? raw.field_type : undefined;
@@ -123,11 +128,19 @@ export interface MutationResult {
   [key: string]: any;
 }
 
+/** The entity (APP_IDS key, lower case) a REST endpoint writes to — for the
+ *  failed-write report, which names the entity, never the record. */
+function entityOfEndpoint(endpoint: string): string | undefined {
+  const m = /\/apps\/([a-f0-9]{24})/.exec(endpoint);
+  if (!m) return undefined;
+  return (Object.keys(APP_IDS) as (keyof typeof APP_IDS)[]).find(k => APP_IDS[k] === m[1])?.toLowerCase();
+}
+
 async function callApi(method: string, endpoint: string, data?: any, options?: CallApiOptions) {
   const silent = options?.silent === true;
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    response = await restFetch(`${API_BASE_URL}${endpoint}`, {
       method,
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',  // Nutze Session Cookies für Auth
@@ -144,6 +157,7 @@ async function callApi(method: string, endpoint: string, data?: any, options?: C
         source: 'network', message, status: 0,
       } }));
     }
+    if (method !== 'GET') reportFailedWrite({ method, status: 0, entity: entityOfEndpoint(endpoint) });
     throw netErr;
   }
   if (!response.ok) {
@@ -166,6 +180,11 @@ async function callApi(method: string, endpoint: string, data?: any, options?: C
         message: err.message,
       } }));
     }
+    // A refused write goes to Sentry as well as to the toast: the user sees it,
+    // now we do too (27.10.2026 — not one failed save had ever reached Sentry).
+    if (method !== 'GET') {
+      reportFailedWrite({ method, status: err.status, code: err.code, field: err.control_identifier, entity: entityOfEndpoint(endpoint) });
+    }
     throw err;
   }
   // DELETE returns often empty body or simple status
@@ -181,7 +200,7 @@ export async function uploadFile(file: File | Blob, filename?: string): Promise<
   if (file instanceof File) file = await ensureUploadableImage(file);
   const formData = new FormData();
   formData.append('file', file, filename ?? (file instanceof File ? file.name : 'upload'));
-  const res = await fetch(`${API_BASE_URL}/files`, {
+  const res = await restFetch(`${API_BASE_URL}/files`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -471,6 +490,44 @@ export class LivingAppsService {
   }
   static async deleteBetriebsdatenEntry(id: string) {
     return callApi('DELETE', `/apps/${APP_IDS.BETRIEBSDATEN}/records/${id}`);
+  }
+
+  // --- AUSWERTUNG_2 ---
+  static async getAuswertung2(): Promise<Auswertung2[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG_2}/records`);
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Auswertung2[];
+    return hydrateRecords(records, 'auswertung_2');
+  }
+  static async queryAuswertung2(q: RecordQuery = {}): Promise<Auswertung2[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG_2}/records${recordQueryString(q)}`, undefined, { signal: q.signal });
+    const records = Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec,
+      createdat: rec.created_at ?? '', updatedat: rec.updated_at ?? null,
+    })) as Auswertung2[];
+    return hydrateRecords(records, 'auswertung_2');
+  }
+  static async countAuswertung2(filter?: string, signal?: AbortSignal): Promise<number> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG_2}/aggregate_records${recordQueryString({ filter })}${filter ? '&' : '?'}value=count()`, undefined, { signal, silent: true });
+    return parseAggregateCount(data);
+  }
+  static async getAuswertung2Entry(id: string): Promise<Auswertung2 | undefined> {
+    const data = await callApi('GET', `/apps/${APP_IDS.AUSWERTUNG_2}/records/${id}`);
+    const record = { record_id: data.id, ...data, createdat: data.created_at ?? '', updatedat: data.updated_at ?? null } as Auswertung2;
+    return hydrateRecords([record], 'auswertung_2')[0];
+  }
+  static async createAuswertung2Entry(fields: CreateAuswertung2): Promise<MutationResult> {
+    const data = await callApi('POST', `/apps/${APP_IDS.AUSWERTUNG_2}/records`, { fields: cleanFieldsForApi(fields as any, 'auswertung_2') });
+    return { ...data, record_id: data.id };
+  }
+  static async updateAuswertung2Entry(id: string, fields: Partial<CreateAuswertung2>): Promise<MutationResult> {
+    const data = await callApi('PATCH', `/apps/${APP_IDS.AUSWERTUNG_2}/records/${id}`, { fields: cleanFieldsForApi(fields as any, 'auswertung_2') });
+    return { ...data, record_id: data.id };
+  }
+  static async deleteAuswertung2Entry(id: string) {
+    return callApi('DELETE', `/apps/${APP_IDS.AUSWERTUNG_2}/records/${id}`);
   }
 
   // --- AUSWERTUNG ---

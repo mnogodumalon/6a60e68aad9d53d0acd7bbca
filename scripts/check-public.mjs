@@ -356,8 +356,8 @@ for (const file of pageFiles) {
   }
 }
 
-// The agent's occupancy decision (src/config/journey.ts): which applookup is
-// the booked resource of a stay. Missing file or block → no rules.
+// The occupancy rule (src/config/journey.ts, from the plan or the agent):
+// the stay pair, the booked resource and the status that frees a stay. Missing file or block → no rules.
 const JOURNEY_CONFIG = 'src/config/journey.ts';
 const occupancyRules = {};
 if (existsSync(JOURNEY_CONFIG)) {
@@ -366,7 +366,7 @@ if (existsSync(JOURNEY_CONFIG)) {
     for (const m of block[1].matchAll(/^\s*['"]?([a-z0-9_]+)['"]?\s*:\s*\{([^}]*)\}\s*,?\s*$/gm)) {
       const body = m[2];
       const str = key => { const s = new RegExp(`\\b${key}\\s*:\\s*['"]([^'"]+)['"]`).exec(body); return s ? s[1] : undefined; };
-      occupancyRules[m[1]] = { from: str('from'), to: str('to'), resource: str('resource') };
+      occupancyRules[m[1]] = { from: str('from'), to: str('to'), resource: str('resource'), statusField: str('statusField') };
     }
   }
 }
@@ -545,18 +545,24 @@ function checkEndpoint(slug, ep, pageSrc, pageFile, where = SURFACE) {
   if (ep.op === 'list' && !(Array.isArray(ep.fields) && ep.fields.length > 0)) {
     errors.push(`${where}: page '${slug}' endpoint '${ep.entity}' is a list without a "fields" projection — name exactly the columns the page shows`);
   }
-  // file fields: READING is fine — a file URL answers an anonymous GET with
-  // 200 and `cache-control: public` (measured), so a listed logo or hero
-  // image simply renders. UPLOADING is not: /files is not grantable, so a
-  // visitor has nowhere to put the bytes and the service rejects the page.
-  if (ep.op === 'create' && Array.isArray(ep.fields) && appMeta) {
-    const controls = appMeta.apps?.[ep.entity]?.controls || {};
-    for (const key of ep.fields) {
-      if (controls[key]?.fulltype?.startsWith('file')) {
-        errors.push(`${where}: page '${slug}' endpoint '${ep.entity}' asks visitors to submit file field '${key}' — anonymous UPLOAD is impossible (/files is not grantable); drop it from the create endpoint (listing a file field for DISPLAY is fine)`);
-      }
+  // A public list of an entity with an occupancy rule is read for the
+  // calendar — it must carry every field the rule evaluates. Without the
+  // status field a cancelled stay still blocks nights (live 23.10.2026:
+  // the page listed anreise/abreise/platz and left `status` out).
+  if (ep.op === 'list' && occupancyRules[ep.entity]) {
+    const rule = occupancyRules[ep.entity];
+    const have = Array.isArray(ep.fields) ? ep.fields : [];
+    const missing = [rule.from, rule.to, rule.resource, rule.statusField].filter(k => k && !have.includes(k));
+    if (missing.length) {
+      errors.push(`${where}: page '${slug}' lists '${ep.entity}', whose occupancy rule (src/config/journey.ts) evaluates ${missing.map(k => `'${k}'`).join(', ')} — the list projection lacks ${missing.length === 1 ? 'it' : 'them'}, so the calendar cannot tell a free stay from a booked one; add ${missing.map(k => `'${k}'`).join(', ')} to the list endpoint's fields`);
     }
   }
+  // file fields: READING is fine — a file URL answers an anonymous GET with
+  // 200 and `cache-control: public` (measured), so a listed logo or hero
+  // image simply renders. UPLOADING works too (probed 20.10.2026): a file
+  // field in a create endpoint takes the file as a data URL — the page binds
+  // it with <FileField {...form.file(key)} /> (Bound does it by kind), which
+  // limits type and size. /files and attachments stay ungrantable.
   // preset_fields are server-owned — a key listed in fields too would make
   // the visitor's value win, defeating the preset.
   const epFields = ep.fields || [];

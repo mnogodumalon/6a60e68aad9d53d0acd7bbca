@@ -428,7 +428,7 @@ function MainView({ st, groups, lines, q, setQ, openGroups, setOpenGroups, dismi
               <div className="divide-y divide-border rounded-2xl border border-border bg-card">
                 {ls.map((l, i) => {
                   const firstOfTool = l.about.kind === 'tool' && ls.findIndex(o => o.about.kind === 'tool' && o.about.id === l.about.id) === i;
-                  return <LineRow key={l.id} line={l} more={firstOfTool && g.kind !== 'roles' && g.kind !== 'limits' && g.kind !== 'platform' && g.kind !== 'gaps'} flowLink />;
+                  return <LineRow key={l.id} line={l} more={firstOfTool && g.kind !== 'roles' && g.kind !== 'limits' && g.kind !== 'platform' && g.kind !== 'gaps' && g.kind !== 'understanding'} flowLink />;
                 })}
               </div>
             )}
@@ -504,6 +504,7 @@ function LineRow({ line, card, more, flowLink }: { line: MapLine; card?: boolean
   const slow = speedOf(line) === 'minutes';
   const canEdit = c.canChange && !!e?.ready && !editing;
   const assumed = line.tag === 'assumed' && !line.answered;
+  const inferred = line.tag === 'inferred';
   const aboutTool: ChangeAbout | null = more ? { kind: 'tool', id: line.about.id, label: line.about.label ?? line.about.id } : null;
   const wishHere = !!aboutTool && c.wishKey === keyOf(aboutTool);
   const marked = !!c.focus && c.focus === line.id;
@@ -532,7 +533,7 @@ function LineRow({ line, card, more, flowLink }: { line: MapLine; card?: boolean
   const request = async () => {
     setRequesting(true);
     try {
-      const proposal = await proposeChange(line.text, null, line.about.id);
+      const proposal = await proposeChange(requestAction?.text ?? line.text, null, requestAction?.gap ?? line.about.id);
       c.onChanged({ proposal });
       c.openWish(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -547,6 +548,7 @@ function LineRow({ line, card, more, flowLink }: { line: MapLine; card?: boolean
           <p className={card ? 'text-base' : 'text-sm'}>
             {rich(parts[0])}{slot && (control ?? chip)}{slot && rich(parts.slice(1).join(''))}
             {assumed && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 align-middle text-[11px] font-semibold text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">{t('am_assumed_tag')}</span>}
+            {inferred && <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 align-middle text-[11px] font-semibold text-secondary-foreground" title={t('am_inferred_hint')}>{t('am_inferred_tag')}</span>}
             {flowLink && line.about.kind === 'intent' && (
               <> <button type="button" onClick={() => c.navigate(`/intents/${line.about.id}`)} className="inline-flex items-center gap-0.5 font-semibold text-primary hover:underline">{line.about.label ?? line.about.id}<IconChevronRight size={14} aria-hidden="true" /></button></>
             )}

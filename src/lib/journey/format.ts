@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
 import { dateFnsLocale, localeTag, t, tp } from '@/i18n';
 import { isEmptyValue, optionsOf, ruleOf, type EntityKey } from './rules';
 import { recordIdOf, recordLabelOf } from './recordLabels';
+import { uploadDisplayName } from './upload';
 
 export const EMPTY_VALUE = '—';
 
@@ -28,6 +29,9 @@ export function formatFieldValue(
   switch (rule?.kind) {
     case 'bool':
       return value ? t('v_yes') : t('v_no');
+    // never the data URL (megabytes) — the file's name
+    case 'file':
+      return uploadDisplayName(value);
     case 'date':
       return formatDate(String(value));
     case 'datetime':

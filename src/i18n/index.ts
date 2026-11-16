@@ -44,7 +44,7 @@
  */
 import { de as dfDe } from 'date-fns/locale';
 import type { Locale as DateFnsLocale } from 'date-fns';
-import { REST_URL } from '@/lib/origin';
+import { REST_URL, restFetch } from '@/lib/origin';
 
 // Core = baked into the bundle. Locale stays an OPEN string type so overlay
 // languages added later never invalidate today's code (`string & {}` keeps
@@ -450,6 +450,8 @@ export const UI_CATALOG: Record<CoreLocale, Record<string, string>> = {
     "am_nothing": "Nichts gefunden.",
     "am_as_wish": "Als Wunsch aufschreiben",
     "am_assumed_tag": "angenommen",
+    "am_inferred_tag": "dazu gedacht",
+    "am_inferred_hint": "Stand nicht in deiner Beschreibung — Klar hat es ergänzt. „Nicht nötig“ entfernt es.",
     "am_instant_hint": "Gilt sofort.",
     "am_take": "Übernehmen",
     "am_changed": "Geändert",
@@ -629,6 +631,11 @@ export const UI_CATALOG: Record<CoreLocale, Record<string, string>> = {
     "nf_back": "Zurück zum Dashboard",
     "ss_change_selection": "Auswahl ändern",
     "ss_missing": "Noch offen:",
+    "le_add": "Hinzufügen",
+    "le_edit": "Ändern",
+    "le_remove": "Entfernen",
+    "le_list": "{entity}: Einträge",
+    "le_empty": "Noch kein Eintrag. Ausfüllen und „Hinzufügen“ drücken, oder mit „Weiter“ den ersten übernehmen.",
     "ss_confirm": "Bestätigen",
     "ss_submitting": "Wird gespeichert …",
     "ss_error_title": "Das hat nicht geklappt — deine Eingaben sind noch da.",
@@ -660,6 +667,15 @@ export const UI_CATALOG: Record<CoreLocale, Record<string, string>> = {
     "wz_progress": "Schritt {n} von {total}",
     "wz_progress_label": "Schritt {n} von {total}: {label}",
     "wz_steps_nav": "Fortschritt",
+    "up_choose": "Datei auswählen",
+    "up_replace": "Andere Datei",
+    "up_remove": "Datei entfernen",
+    "up_reading": "Datei wird gelesen …",
+    "up_hint": "PDF, Bild, Word oder Excel, höchstens {mb} MB.",
+    "up_too_big": "Die Datei ist größer als {mb} MB.",
+    "up_bad_type": "Diese Dateiart geht hier nicht — bitte PDF, Bild, Word oder Excel.",
+    "up_empty": "Die Datei ist leer.",
+    "up_read_failed": "Die Datei ließ sich nicht lesen. Bitte noch einmal auswählen.",
     "wz_step_done": "erledigt",
     "wz_completed": "Abgeschlossen",
     "wz_answers": "Bisherige Angaben",
@@ -1209,6 +1225,8 @@ export const UI_CATALOG: Record<CoreLocale, Record<string, string>> = {
     "am_nothing": "Nothing found.",
     "am_as_wish": "Write it down as a wish",
     "am_assumed_tag": "assumed",
+    "am_inferred_tag": "added for you",
+    "am_inferred_hint": "Not in your description — Klar added it. “Not needed” removes it.",
     "am_instant_hint": "Applies at once.",
     "am_take": "Apply",
     "am_changed": "Changed",
@@ -1388,6 +1406,11 @@ export const UI_CATALOG: Record<CoreLocale, Record<string, string>> = {
     "nf_back": "Back to the dashboard",
     "ss_change_selection": "Change selection",
     "ss_missing": "Still missing:",
+    "le_add": "Add",
+    "le_edit": "Change",
+    "le_remove": "Remove",
+    "le_list": "{entity}: entries",
+    "le_empty": "No entry yet. Fill in and press “Add”, or take the first one with “Next”.",
     "ss_confirm": "Confirm",
     "ss_submitting": "Saving …",
     "ss_error_title": "That did not work — your entries are still here.",
@@ -1419,6 +1442,15 @@ export const UI_CATALOG: Record<CoreLocale, Record<string, string>> = {
     "wz_progress": "Step {n} of {total}",
     "wz_progress_label": "Step {n} of {total}: {label}",
     "wz_steps_nav": "Progress",
+    "up_choose": "Choose file",
+    "up_replace": "Other file",
+    "up_remove": "Remove file",
+    "up_reading": "Reading file …",
+    "up_hint": "PDF, image, Word or Excel, at most {mb} MB.",
+    "up_too_big": "The file is larger than {mb} MB.",
+    "up_bad_type": "This file type is not accepted here — please PDF, image, Word or Excel.",
+    "up_empty": "The file is empty.",
+    "up_read_failed": "The file could not be read. Please choose it again.",
     "wz_step_done": "done",
     "wz_completed": "Completed",
     "wz_answers": "Your answers so far",
@@ -1611,6 +1643,19 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
         },
         "lookups": {}
       },
+      "auswertung_2": {
+        "name": "Auswertung 2",
+        "app_id": "6afacccffbc22eef38057809",
+        "fields": {
+          "zeitstempel": "Zeitstempel",
+          "sekunde": "Sekunde",
+          "messgroesse": "Messgröße",
+          "wert": "Messwert",
+          "einheit": "Einheit",
+          "bemerkung": "Bemerkung"
+        },
+        "lookups": {}
+      },
       "auswertung": {
         "name": "Auswertung",
         "app_id": "6ae3775e3d50fedbf85e7966",
@@ -1627,7 +1672,7 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
     }
   },
   "en": {
-    "appgroup": "BGA Operating Data Acquisition",
+    "appgroup": "Biogas Plant Operating Data Acquisition",
     "apps": {
       "betriebsdaten": {
         "name": "Operating Data",
@@ -1639,6 +1684,19 @@ export const LABELS: Record<CoreLocale, LabelBundle> = {
           "einheit": "Unit",
           "bemerkung": "Remark",
           "sekunde": "Second"
+        },
+        "lookups": {}
+      },
+      "auswertung_2": {
+        "name": "Evaluation 2",
+        "app_id": "6afacccffbc22eef38057809",
+        "fields": {
+          "zeitstempel": "Timestamp",
+          "sekunde": "Second",
+          "messgroesse": "Measured Variable",
+          "wert": "Measured Value",
+          "einheit": "Unit",
+          "bemerkung": "Remark"
         },
         "lookups": {}
       },
@@ -1837,7 +1895,7 @@ export async function syncProfileLocale(): Promise<void> {
   profileSyncDone = true;
   const before = locale;
   try {
-    const r = await fetch(`${LA_API_URL}/user`, { credentials: 'include' });
+    const r = await restFetch(`${LA_API_URL}/user`, { credentials: 'include' });
     if (!r.ok) return;
     const raw = (await r.json()) as { lang?: unknown; firstname?: unknown };
     if (typeof raw?.firstname === 'string' && raw.firstname.trim()) {
@@ -1860,7 +1918,7 @@ export async function syncProfileLocale(): Promise<void> {
 // the local switch already happened; localStorage carries it meanwhile.
 async function persistProfileLanguage(next: Locale): Promise<void> {
   try {
-    await fetch(`${LA_API_URL}/user`, {
+    await restFetch(`${LA_API_URL}/user`, {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

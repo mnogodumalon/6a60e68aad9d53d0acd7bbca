@@ -7,8 +7,8 @@
  *
  * Both doors call this: the internal flow with the records from
  * useDashboardData, the public form with the records its grant lists. The
- * RULE (which two fields form the stay, which applookup names the booked
- * resource, which status keys mean the booking occupies nothing) is decided
+ * RULE (which two fields form the stay, which field names the booked
+ * resource — an applookup or a single lookup —, which status keys mean the booking occupies nothing) is decided
  * once by the build agent — nothing here guesses from field names. Rules:
  *
  *   1. only records of the selected resource count (a room, a vehicle) —
@@ -37,7 +37,7 @@ export interface OccupancyRange {
 }
 
 export interface OccupancyOptions {
-  /** The picked resource's record id (room, vehicle) — when the rule names a resource. */
+  /** The picked resource: a record id (room, vehicle) or a lookup key (place number) — when the rule names a resource. */
   resource?: string | null;
   /** Count cancelled/free records as occupied too (default false). */
   includeFree?: boolean;

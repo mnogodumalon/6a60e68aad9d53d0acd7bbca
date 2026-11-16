@@ -18,6 +18,7 @@ export * from './search';
 export * from './fields';
 export * from './recordLabels';
 export * from './flowLinks';
+export * from './upload';
 export * from './useRecordSearch';
 export * from './useOccupancy';
 export * from './useRecordCount';

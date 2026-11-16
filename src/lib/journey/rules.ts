@@ -13,12 +13,13 @@ import { appLabel, fieldLabel, lookupLabel } from '@/i18n';
 import { policyLabel } from './policy';
 import { LOOKUP_OPTIONS } from '@/types/app';
 
-export type EntityKey = 'betriebsdaten' | 'auswertung';
+export type EntityKey = 'betriebsdaten' | 'auswertung_2' | 'auswertung';
 
 /** The text fields of each entity — what a search may run over (generated;
  *  `never` for an entity without text of its own, e.g. a link table). */
 export interface StringFields {
   "betriebsdaten": "messgroesse" | "einheit" | "bemerkung";
+  "auswertung_2": "messgroesse" | "einheit" | "bemerkung";
   "auswertung": "messgroesse" | "einheit" | "bemerkung";
 }
 export type StringFieldKey<E extends EntityKey> = E extends keyof StringFields ? StringFields[E] : never;
@@ -28,6 +29,7 @@ export type StringFieldKey<E extends EntityKey> = E extends keyof StringFields ?
  *  (`StepForm.set`), because the review would otherwise show the id. */
 export interface RecordFields {
   "betriebsdaten": never;
+  "auswertung_2": never;
   "auswertung": never;
 }
 export type RecordFieldKey<E extends EntityKey> = E extends keyof RecordFields ? RecordFields[E] : never;
@@ -57,7 +59,8 @@ export interface FieldRule {
   required: boolean;
   /** Build-time label — `labelOf()` prefers the runtime i18n bundle. */
   label: string;
-  /** Whether a journey may write it (`file` is upload-only, never via a journey). */
+  /** Whether a journey may write it as a value. `file` is false: a file is UPLOADED
+   *  (`form.file(key)` → FileField; the chosen file travels in the create as a data URL). */
   writable: boolean;
   maxLength?: number;
   /** lookup / multilookup: the ONLY valid write values. */
@@ -99,6 +102,13 @@ export const ENTITIES: Record<EntityKey, EntityInfo> = {
     "pascal": "Betriebsdaten",
     "single": "BetriebsdatenEntry"
   },
+  "auswertung_2": {
+    "key": "auswertung_2",
+    "appId": "6afacccffbc22eef38057809",
+    "label": "Auswertung 2",
+    "pascal": "Auswertung2",
+    "single": "Auswertung2Entry"
+  },
   "auswertung": {
     "key": "auswertung",
     "appId": "6ae3775e3d50fedbf85e7966",
@@ -112,7 +122,7 @@ export const FIELD_RULES: Record<EntityKey, Record<string, FieldRule>> = {
   "betriebsdaten": {
     "zeitstempel": {
       "key": "zeitstempel",
-      "fulltype": "date/datetimeminute",
+      "fulltype": "date/datetimesecond",
       "kind": "datetime",
       "required": true,
       "label": "Zeitstempel",
@@ -158,6 +168,58 @@ export const FIELD_RULES: Record<EntityKey, Record<string, FieldRule>> = {
       "kind": "number",
       "required": false,
       "label": "Sekunde",
+      "writable": true
+    }
+  },
+  "auswertung_2": {
+    "zeitstempel": {
+      "key": "zeitstempel",
+      "fulltype": "date/datetimeminute",
+      "kind": "datetime",
+      "required": true,
+      "label": "Zeitstempel",
+      "writable": true
+    },
+    "sekunde": {
+      "key": "sekunde",
+      "fulltype": "number",
+      "kind": "number",
+      "required": false,
+      "label": "Sekunde",
+      "writable": true
+    },
+    "messgroesse": {
+      "key": "messgroesse",
+      "fulltype": "string/text",
+      "kind": "text",
+      "required": false,
+      "label": "Messgröße",
+      "writable": true,
+      "maxLength": 4000
+    },
+    "wert": {
+      "key": "wert",
+      "fulltype": "number",
+      "kind": "number",
+      "required": false,
+      "label": "Messwert",
+      "writable": true
+    },
+    "einheit": {
+      "key": "einheit",
+      "fulltype": "string/text",
+      "kind": "text",
+      "required": false,
+      "label": "Einheit",
+      "writable": true,
+      "maxLength": 4000
+    },
+    "bemerkung": {
+      "key": "bemerkung",
+      "fulltype": "string/textarea",
+      "kind": "textarea",
+      "required": false,
+      "label": "Bemerkung",
       "writable": true
     }
   },
@@ -217,6 +279,7 @@ export const FIELD_RULES: Record<EntityKey, Record<string, FieldRule>> = {
 
 export const SHAPES: Record<EntityKey, Shape[]> = {
   "betriebsdaten": [],
+  "auswertung_2": [],
   "auswertung": []
 };
 
@@ -226,6 +289,9 @@ export const SHAPES: Record<EntityKey, Shape[]> = {
  *  this name (`ctx.ref('gast')` in `toItem`). */
 export const DISPLAY_FIELDS: Record<EntityKey, string[]> = {
   "betriebsdaten": [
+    "messgroesse"
+  ],
+  "auswertung_2": [
     "messgroesse"
   ],
   "auswertung": [

@@ -43,6 +43,7 @@ export default function DashboardOverview() {
   const {
     betriebsdaten, setBetriebsdaten,
     auswertung,
+    auswertung2,
     loading, error, fetchAll,
   } = useDashboardData();
 
@@ -205,6 +206,12 @@ export default function DashboardOverview() {
             <StatStripItem
               title={tx('Auswertung')}
               value={auswertung.length}
+              icon={<IconChartBar size={16} className="shrink-0" />}
+              tone="default"
+            />
+            <StatStripItem
+              title={tx('Auswertung 2')}
+              value={auswertung2.length}
               icon={<IconChartBar size={16} className="shrink-0" />}
               tone="default"
             />

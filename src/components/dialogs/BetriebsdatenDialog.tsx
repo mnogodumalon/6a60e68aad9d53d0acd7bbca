@@ -30,7 +30,6 @@ import { AttachmentsSection } from '@/components/AttachmentsSection';
 import { requiredMessage } from '@/lib/journey/messages';
 import { t, appLabel, fieldLabel, lookupLabel, localeTag, CURRENCY } from '@/i18n';
 import { Textarea } from '@/components/ui/textarea';
-import { DatePicker } from '@/components/DatePicker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconAlertCircle, IconCamera, IconChevronDown, IconCircleCheck, IconClipboard, IconFileText, IconLoader2, IconPhotoPlus, IconSparkles, IconUpload, IconX } from '@tabler/icons-react';
 import { fileToDataUri, extractFromInput, extractPhotoMeta, reverseGeocode } from '@/lib/ai';
@@ -223,7 +222,7 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
         }
       }
       const photoContext = contextParts.length ? contextParts.join('\n') : undefined;
-      const schema = `{\n  "zeitstempel": string | null, // YYYY-MM-DDTHH:MM\n  "messgroesse": string | null, // Messgröße\n  "wert": number | null, // Messwert\n  "einheit": string | null, // Einheit\n  "bemerkung": string | null, // Bemerkung\n  "sekunde": number | null, // Sekunde\n}`;
+      const schema = `{\n  "zeitstempel": string | null, // Zeitstempel\n  "messgroesse": string | null, // Messgröße\n  "wert": number | null, // Messwert\n  "einheit": string | null, // Einheit\n  "bemerkung": string | null, // Bemerkung\n  "sekunde": number | null, // Sekunde\n}`;
       const raw = await extractFromInput<Record<string, unknown>>(schema, {
         dataUri: uri,
         userText: aiText.trim() || undefined,
@@ -288,13 +287,10 @@ export function BetriebsdatenDialog({ open, onClose, onSubmit, defaultValues, re
     'zeitstempel': (
       <div key="zeitstempel" className="space-y-1.5">
         <Label htmlFor="zeitstempel">{fieldLabel('betriebsdaten', 'zeitstempel')} <span className="text-destructive" aria-hidden="true">*</span></Label>
-        <DatePicker
+        <Input
           id="zeitstempel"
-          placeholder=""
-          mode="datetime"
-          value={fields.zeitstempel ?? null}
-          onChange={v => setFields(f => ({ ...f, zeitstempel: v ?? undefined }))}
-          required
+          value={fields.zeitstempel ?? ''}
+          onChange={e => setFields(f => ({ ...f, zeitstempel: e.target.value }))}
         />
         {showErrors && !fields.zeitstempel && (
           <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('betriebsdaten', 'zeitstempel')}</p>
